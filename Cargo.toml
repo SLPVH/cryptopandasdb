@@ -5,4 +5,5 @@ members = [
     "slpdexdb_db",
     "slpdexdb_node",
     "slpdexdb_base",
+    "cryptopandas_frontend",
 ]

@@ -9,7 +9,7 @@ edition = "2018"
 #crate-type = ["cdylib"]
 
 [dependencies]
-cashcontracts = {"path"="../../cashcontracts"}
+cashcontracts = {"git"="https://github.com/slpdex/cashcontracts-rs"}
 slpdexdb_base = {"path"="../slpdexdb_base"}
 byteorder = "1.3.2"
 hex = "0.3.2"

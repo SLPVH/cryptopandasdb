@@ -555,7 +555,7 @@ impl TradeOffer {
         };
         let address = output.output.address()?;
         if address.addr_type() == AddressType::P2SH {
-            let hash = cashcontracts::hash160(
+            /*let hash = cashcontracts::hash160(
                 &cashcontracts::AdvancedTradeOffer {
                     value: output.value_satoshis,
                     lokad_id: b"EXCH".to_vec(),
@@ -577,7 +577,8 @@ impl TradeOffer {
                 Some(output.value_token)
             } else {
                 None
-            }
+            }*/
+            None
         } else {
             None
         }
