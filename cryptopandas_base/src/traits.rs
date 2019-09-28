@@ -1,15 +1,35 @@
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 use num_enum::TryFromPrimitive;
 
 pub struct GeneticDisorder; // Gene too large
 
-pub trait GeneticTrait
-where Self: Sized {
+pub trait PandaAttribute
+where
+    Self: Sized,
+{
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder>;
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+pub trait PandaTrait
+where
+    Self: PandaAttribute,
+{
+    fn from_gene_slice(genes: &[u8; 4]) -> Result<[Self; 4], GeneticDisorder>;
+}
+
+impl<U: PandaAttribute> PandaTrait for U {
+    fn from_gene_slice(gene_slice: &[u8; 4]) -> Result<[Self; 4], GeneticDisorder> {
+        Ok([
+            Self::from_gene(gene_slice[0])?,
+            Self::from_gene(gene_slice[1])?,
+            Self::from_gene(gene_slice[2])?,
+            Self::from_gene(gene_slice[3])?,
+        ])
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Physique {
     Standard, // Default is a reversed word
@@ -19,10 +39,10 @@ pub enum Physique {
     Chubby,
     Overweight,
     Athletic,
-    Genius
+    Genius,
 }
 
-impl GeneticTrait for Physique {
+impl PandaAttribute for Physique {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(Physique::try_from(gene / 8).unwrap())
@@ -32,7 +52,7 @@ impl GeneticTrait for Physique {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Pattern {
     PandaI,
@@ -42,10 +62,10 @@ pub enum Pattern {
     Cow,
     Stripes,
     Dots,
-    Bitcoin
+    Bitcoin,
 }
 
-impl GeneticTrait for Pattern {
+impl PandaAttribute for Pattern {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(Pattern::try_from(gene / 8).unwrap())
@@ -55,7 +75,7 @@ impl GeneticTrait for Pattern {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeColor {
     Thundergrey,
@@ -89,10 +109,10 @@ pub enum EyeColor {
     GeminiIII,
     DioscuriIII,
     KaleidoscopeIIII,
-    Unknown
+    Unknown,
 }
 
-impl GeneticTrait for EyeColor {
+impl PandaAttribute for EyeColor {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(EyeColor::try_from(gene).unwrap())
@@ -102,7 +122,7 @@ impl GeneticTrait for EyeColor {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeShape {
     Standard,
@@ -112,10 +132,10 @@ pub enum EyeShape {
     Caffeine,
     Angry,
     Fabulous,
-    Nerd
+    Nerd,
 }
 
-impl GeneticTrait for EyeShape {
+impl PandaAttribute for EyeShape {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(EyeShape::try_from(gene / 8).unwrap())
@@ -125,7 +145,7 @@ impl GeneticTrait for EyeShape {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum BaseColor {
     Shadowgrey,
@@ -159,10 +179,10 @@ pub enum BaseColor {
     HotcocoaIII,
     ShamrockIII,
     FirstblushIIII,
-    Unknown
+    Unknown,
 }
 
-impl GeneticTrait for BaseColor {
+impl PandaAttribute for BaseColor {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(BaseColor::try_from(gene).unwrap())
@@ -172,7 +192,7 @@ impl GeneticTrait for BaseColor {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum HighlightColor {
     Cyborg,
@@ -206,10 +226,10 @@ pub enum HighlightColor {
     InflatablepoolIII,
     PearlIII,
     PrairieroseIIII,
-    Unknown
+    Unknown,
 }
 
-impl GeneticTrait for HighlightColor {
+impl PandaAttribute for HighlightColor {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(HighlightColor::try_from(gene).unwrap())
@@ -219,7 +239,7 @@ impl GeneticTrait for HighlightColor {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum AccentColor {
     Belleblue,
@@ -253,10 +273,10 @@ pub enum AccentColor {
     SullyIII,
     FallspiceIII,
     DreamboatIIII,
-    Unknown
+    Unknown,
 }
 
-impl GeneticTrait for AccentColor {
+impl PandaAttribute for AccentColor {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(AccentColor::try_from(gene).unwrap())
@@ -266,17 +286,17 @@ impl GeneticTrait for AccentColor {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum WildElement {
     Standard,
     Element,
     ThirdEye,
     BushyTail,
-    Unicorn
+    Unicorn,
 }
 
-impl GeneticTrait for WildElement {
+impl PandaAttribute for WildElement {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             if gene < 16 {
@@ -290,7 +310,7 @@ impl GeneticTrait for WildElement {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Mouth {
     Standard,
@@ -300,10 +320,10 @@ pub enum Mouth {
     Tongue,
     Walrus,
     Nullc,
-    Amaury
+    Amaury,
 }
 
-impl GeneticTrait for Mouth {
+impl PandaAttribute for Mouth {
     fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
         if gene < 32 {
             Ok(Mouth::try_from(gene / 8).unwrap())
@@ -313,7 +333,8 @@ impl GeneticTrait for Mouth {
     }
 }
 
-pub struct PandaTraits {
+#[derive(Clone, Debug)]
+pub struct PandaAttributes {
     physique: Physique,
     pattern: Pattern,
     eye_color: EyeColor,
@@ -322,6 +343,49 @@ pub struct PandaTraits {
     highlight_color: HighlightColor,
     accent_color: AccentColor,
     wild_element: WildElement,
-    mouth: Mouth
+    mouth: Mouth,
 }
 
+impl PandaAttributes {
+    fn from_genes(genes: &[u8; 48]) -> Result<Self, GeneticDisorder> {
+        Ok(PandaAttributes {
+            physique: Physique::from_gene(genes[0])?,
+            pattern: Pattern::from_gene(genes[2])?,
+            eye_color: EyeColor::from_gene(genes[5])?,
+            eye_shape: EyeShape::from_gene(genes[8])?,
+            base_color: BaseColor::from_gene(genes[11])?,
+            highlight_color: HighlightColor::from_gene(genes[14])?,
+            accent_color: AccentColor::from_gene(genes[17])?,
+            wild_element: WildElement::from_gene(genes[20])?,
+            mouth: Mouth::from_gene(genes[23])?,
+        })
+    }
+}
+
+pub struct PandaTraits {
+    physique: [Physique; 4],
+    pattern: [Pattern; 4],
+    eye_color: [EyeColor; 4],
+    eye_shape: [EyeShape; 4],
+    base_color: [BaseColor; 4],
+    highlight_color: [HighlightColor; 4],
+    accent_color: [AccentColor; 4],
+    wild_element: [WildElement; 4],
+    mouth: [Mouth; 4],
+}
+
+impl PandaTraits {
+    fn from_genes(genes: &[u8; 48]) -> Result<Self, GeneticDisorder> {
+        Ok(PandaTraits {
+            physique: Physique::from_gene_slice(&genes[0..4].try_into().unwrap())?,
+            pattern: Pattern::from_gene_slice(&genes[4..8].try_into().unwrap())?,
+            eye_color: EyeColor::from_gene_slice(&genes[8..12].try_into().unwrap())?,
+            eye_shape: EyeShape::from_gene_slice(&genes[12..16].try_into().unwrap())?,
+            base_color: BaseColor::from_gene_slice(&genes[16..20].try_into().unwrap())?,
+            highlight_color: HighlightColor::from_gene_slice(&genes[20..24].try_into().unwrap())?,
+            accent_color: AccentColor::from_gene_slice(&genes[24..28].try_into().unwrap())?,
+            wild_element: WildElement::from_gene_slice(&genes[28..32].try_into().unwrap())?,
+            mouth: Mouth::from_gene_slice(&genes[32..36].try_into().unwrap())?,
+        })
+    }
+}
