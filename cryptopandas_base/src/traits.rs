@@ -2,24 +2,24 @@ use std::convert::{TryFrom, TryInto};
 
 use num_enum::TryFromPrimitive;
 
-pub struct GeneticDisorder; // Gene too large
+pub struct InvalidGeneInteger; // Gene too large
 
 pub trait PandaAttribute
 where
     Self: Sized,
 {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder>;
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger>;
 }
 
 pub trait PandaTrait
 where
     Self: PandaAttribute,
 {
-    fn from_gene_slice(genes: &[u8; 4]) -> Result<[Self; 4], GeneticDisorder>;
+    fn from_gene_slice(genes: &[u8; 4]) -> Result<[Self; 4], InvalidGeneInteger>;
 }
 
 impl<U: PandaAttribute> PandaTrait for U {
-    fn from_gene_slice(gene_slice: &[u8; 4]) -> Result<[Self; 4], GeneticDisorder> {
+    fn from_gene_slice(gene_slice: &[u8; 4]) -> Result<[Self; 4], InvalidGeneInteger> {
         Ok([
             Self::from_gene(gene_slice[0])?,
             Self::from_gene(gene_slice[1])?,
@@ -43,11 +43,11 @@ pub enum Physique {
 }
 
 impl PandaAttribute for Physique {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(Physique::try_from(gene / 8).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -66,11 +66,11 @@ pub enum Pattern {
 }
 
 impl PandaAttribute for Pattern {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(Pattern::try_from(gene / 8).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -113,11 +113,11 @@ pub enum EyeColor {
 }
 
 impl PandaAttribute for EyeColor {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(EyeColor::try_from(gene).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -136,11 +136,11 @@ pub enum EyeShape {
 }
 
 impl PandaAttribute for EyeShape {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(EyeShape::try_from(gene / 8).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -183,11 +183,11 @@ pub enum BaseColor {
 }
 
 impl PandaAttribute for BaseColor {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(BaseColor::try_from(gene).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -230,11 +230,11 @@ pub enum HighlightColor {
 }
 
 impl PandaAttribute for HighlightColor {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(HighlightColor::try_from(gene).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -277,11 +277,11 @@ pub enum AccentColor {
 }
 
 impl PandaAttribute for AccentColor {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(AccentColor::try_from(gene).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -290,14 +290,14 @@ impl PandaAttribute for AccentColor {
 #[repr(u8)]
 pub enum WildElement {
     Standard,
-    Element,
+    ElkHorns,
     ThirdEye,
     BushyTail,
     Unicorn,
 }
 
 impl PandaAttribute for WildElement {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             if gene < 16 {
                 Ok(WildElement::Standard)
@@ -305,7 +305,7 @@ impl PandaAttribute for WildElement {
                 Ok(WildElement::try_from(gene / 8).unwrap())
             }
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -324,11 +324,11 @@ pub enum Mouth {
 }
 
 impl PandaAttribute for Mouth {
-    fn from_gene(gene: u8) -> Result<Self, GeneticDisorder> {
+    fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
             Ok(Mouth::try_from(gene / 8).unwrap())
         } else {
-            Err(GeneticDisorder)
+            Err(InvalidGeneInteger)
         }
     }
 }
@@ -347,7 +347,7 @@ pub struct PandaAttributes {
 }
 
 impl PandaAttributes {
-    fn from_genes(genes: &[u8; 48]) -> Result<Self, GeneticDisorder> {
+    fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
         Ok(PandaAttributes {
             physique: Physique::from_gene(genes[0])?,
             pattern: Pattern::from_gene(genes[2])?,
@@ -375,7 +375,7 @@ pub struct PandaTraits {
 }
 
 impl PandaTraits {
-    fn from_genes(genes: &[u8; 48]) -> Result<Self, GeneticDisorder> {
+    fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
         Ok(PandaTraits {
             physique: Physique::from_gene_slice(&genes[0..4].try_into().unwrap())?,
             pattern: Pattern::from_gene_slice(&genes[4..8].try_into().unwrap())?,
