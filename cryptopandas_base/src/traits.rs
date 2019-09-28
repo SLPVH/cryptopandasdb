@@ -1,5 +1,7 @@
 use std::convert::{TryFrom, TryInto};
 
+use diesel::prelude::*;
+use diesel_derive_enum::DbEnum;
 use num_enum::TryFromPrimitive;
 use serde::Serialize;
 
@@ -31,7 +33,7 @@ impl<U: PandaAttribute> PandaTrait for U {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
 #[repr(u8)]
 pub enum Physique {
     Standard, // Default is a reversed word
@@ -55,7 +57,7 @@ impl PandaAttribute for Physique {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
 #[repr(u8)]
 pub enum Pattern {
     #[serde(rename = "Panda I")]
@@ -81,7 +83,8 @@ impl PandaAttribute for Pattern {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Eye_color"]
 #[repr(u8)]
 pub enum EyeColor {
     Thundergrey,
@@ -144,7 +147,8 @@ impl PandaAttribute for EyeColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Eye_shape"]
 #[repr(u8)]
 pub enum EyeShape {
     Standard,
@@ -167,7 +171,8 @@ impl PandaAttribute for EyeShape {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Base_color"]
 #[repr(u8)]
 pub enum BaseColor {
     Shadowgrey,
@@ -230,7 +235,8 @@ impl PandaAttribute for BaseColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Highlight_color"]
 #[repr(u8)]
 pub enum HighlightColor {
     Cyborg,
@@ -293,7 +299,8 @@ impl PandaAttribute for HighlightColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Accent_color"]
 #[repr(u8)]
 pub enum AccentColor {
     Belleblue,
@@ -356,7 +363,8 @@ impl PandaAttribute for AccentColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[DieselType = "Wild_element"]
 #[repr(u8)]
 pub enum WildElement {
     #[serde(rename = "None")]
@@ -384,7 +392,7 @@ impl PandaAttribute for WildElement {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
 #[repr(u8)]
 pub enum Mouth {
     Standard,

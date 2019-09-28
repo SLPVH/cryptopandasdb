@@ -1,21 +1,21 @@
 CREATE TYPE physique AS ENUM
-    ('standard', 'small', 'slim', 'small face', 'chubby',
+    ('standard', 'small', 'slim', 'small_face', 'chubby',
     'overweight', 'athletic', 'genius');
 	
 CREATE TYPE pattern AS ENUM
-    ('panda i', 'panda ii', 'panda iii', 'uniform', 'cow',
+    ('panda_i', 'panda_ii', 'panda_iii', 'uniform', 'cow',
 	'stripes', 'dots', 'bitcoin');
 	
 CREATE TYPE eye_color AS ENUM
     ('thundergrey', 'gold', 'topaz', 'mintgreen', 'isotope',
     'sizzurp', 'chestnut', 'strawberry', 'sapphire',
     'forgetmenot', 'dahlia', 'coralsunrise', 'olive',
-    'doridnudibranch', 'parakeet', 'cyan', 'pumpkin i',
-    'limegreen i', 'bridesmaid i', 'bubblegum i',
-    'twilightsparkle i', 'palejade i', 'pinefresh i',
-    'eclipse I', 'babypuke ii', 'downbythebay ii',
-    'autumnmoon ii', 'Oasis ii', 'gemini iii',
-    'dioscuri iii', 'kaleidoscope iv', 'unknown');
+    'doridnudibranch', 'parakeet', 'cyan', 'pumpkin_i',
+    'limegreen_i', 'bridesmaid_i', 'bubblegum_i',
+    'twilightsparkle_i', 'palejade_i', 'pinefresh_i',
+    'eclipse_i', 'babypuke_ii', 'downbythebay_ii',
+    'autumnmoon_ii', 'Oasis_ii', 'gemini_iii',
+    'dioscuri_iii', 'kaleidoscope_iv', 'unknown');
 
 CREATE TYPE eye_shape AS ENUM
     ('standard', 'small', 'bored', 'wonky',
@@ -26,10 +26,10 @@ CREATE TYPE base_color AS ENUM
     'cottoncandy', 'mauveover', 'aquamarine', 'nachocheez',
     'harbourfog', 'cinderella', 'greymatter', 'tundra',
     'brownies', 'dragonfruit', 'hintomint', 'bananacream',
-    'cloudwhite i', 'cornflower i', 'oldlace i', 'koala i',
-    'lavender i', 'glacier i', 'redvelvet i', 'verdigris i',
-    'icicle ii', 'onyx ii', 'hyacinth ii', 'martian ii',
-    'hotcocoa iii', 'shamrock iii', 'firstblush iv',
+    'cloudwhite_i', 'cornflower_i', 'oldlace_i', 'koala_i',
+    'lavender_i', 'glacier_i', 'redvelvet_i', 'verdigris_i',
+    'icicle_ii', 'onyx_ii', 'hyacinth_ii', 'martian_ii',
+    'hotcocoa_iii', 'shamrock_iii', 'firstblush_iv',
     'unknown');
 
 CREATE TYPE highlight_color AS ENUM
@@ -37,11 +37,11 @@ CREATE TYPE highlight_color AS ENUM
     'poisonberry','lilac', 'apricot', 'royalpurple',
     'padparadscha', 'swampgreen', 'violet', 'scarlet',
     'barkbrown', 'coffee', 'lemonade', 'chocolate',
-    'butterscotch', 'ooze i', 'safetyvest i',
-    'turtleback i', 'rosequartz i', 'wolfgrey i', 'cerulian i',
-    'skyblue i', 'garnet i', 'peppermint ii', 'universe ii',
-    'royalblue ii', 'mertail ii', 'inflatablepool iii',
-    'pearl iii', 'prairierose iv', 'unknown');
+    'butterscotch', 'ooze_i', 'safetyvest_i',
+    'turtleback_i', 'rosequartz_i', 'wolfgrey_i', 'cerulian_i',
+    'skyblue_i', 'garnet_i', 'peppermint_ii', 'universe_ii',
+    'royalblue_ii', 'mertail_ii', 'inflatablepool_iii',
+    'pearl_iii', 'prairierose_iv', 'unknown');
 
 CREATE TYPE accent_color AS ENUM
     ('belleblue', 'sandalwood', 'peach', 'icy',
@@ -49,16 +49,16 @@ CREATE TYPE accent_color AS ENUM
     'emeraldgreen', 'kalahari', 'shale',
     'purplehaze', 'hanauma', 'azaleablush',
     'missmuffett', 'morningglory', 'frosting',
-    'daffodil i', 'flamingo i', 'buttercup i',
-    'bloodred i', 'atlantis i', 'summerbonnet i',
-     'periwinkle i', 'patrickstarfish i', 'seafoam ii',
-    'cobalt ii', 'mallowflower ii', 'mintmacaron ii', 
-    'sully iii', 'fallspice iii', 'dreamboat iv',
+    'daffodil_i', 'flamingo_i', 'buttercup_i',
+    'bloodred_i', 'atlantis_i', 'summerbonnet_i',
+    'periwinkle_i', 'patrickstarfish_i', 'seafoam_ii',
+    'cobalt_ii', 'mallowflower_ii', 'mintmacaron_ii', 
+    'sully_iii', 'fallspice_iii', 'dreamboat_iv',
     'unknown');
 
 CREATE TYPE wild_element AS ENUM
-    ('standard', 'elk horns', 'third eye', 'icy',
-    'bushy tail', 'unicorn');
+    ('standard', 'elk_horns', 'third_eye', 'icy',
+    'bushy_tail', 'unicorn');
 
 CREATE TYPE mouth AS ENUM
     ('standard', 'worried', 'happy',
