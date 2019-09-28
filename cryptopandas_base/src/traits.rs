@@ -30,7 +30,7 @@ impl<U: PandaAttribute> PandaTrait for U {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Physique {
     Standard, // Default is a reversed word
@@ -53,7 +53,7 @@ impl PandaAttribute for Physique {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Pattern {
     PandaI,
@@ -76,7 +76,7 @@ impl PandaAttribute for Pattern {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeColor {
     Thundergrey,
@@ -123,7 +123,7 @@ impl PandaAttribute for EyeColor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeShape {
     Standard,
@@ -146,7 +146,7 @@ impl PandaAttribute for EyeShape {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum BaseColor {
     Shadowgrey,
@@ -193,7 +193,7 @@ impl PandaAttribute for BaseColor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum HighlightColor {
     Cyborg,
@@ -240,7 +240,7 @@ impl PandaAttribute for HighlightColor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum AccentColor {
     Belleblue,
@@ -287,7 +287,7 @@ impl PandaAttribute for AccentColor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum WildElement {
     Standard,
@@ -334,7 +334,7 @@ impl PandaAttribute for Mouth {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PandaAttributes {
     physique: Physique,
     pattern: Pattern,
@@ -363,6 +363,7 @@ impl PandaAttributes {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PandaTraits {
     physique: [Physique; 4],
     pattern: [Pattern; 4],
@@ -441,5 +442,41 @@ mod tests {
             assert_eq!(Physique::Genius, Physique::from_gene(i).unwrap());
         }
     }
-    
+
+    #[test]
+    fn sanity_zeros() {
+        let zero_array = [0; 48];
+        let zero_panda_actual = PandaAttributes::from_genes(&zero_array).unwrap();
+        let zero_panda_expected = PandaAttributes {
+            physique: Physique::Standard,
+            pattern: Pattern::PandaI,
+            eye_color: EyeColor::Thundergrey,
+            eye_shape: EyeShape::Standard,
+            base_color: BaseColor::Shadowgrey,
+            highlight_color: HighlightColor::Cyborg,
+            accent_color: AccentColor::Belleblue,
+            wild_element: WildElement::Standard,
+            mouth: Mouth::Standard,
+        };
+        assert_eq!(zero_panda_actual, zero_panda_expected);
+    }
+
+    #[test]
+    fn sanity_max() {
+        let max_array = [31; 48];
+        let max_panda_actual = PandaAttributes::from_genes(&max_array).unwrap();
+        let max_panda_expected = PandaAttributes {
+            physique: Physique::Genius,
+            pattern: Pattern::Bitcoin,
+            eye_color: EyeColor::Unknown,
+            eye_shape: EyeShape::Nerd,
+            base_color: BaseColor::Unknown,
+            highlight_color: HighlightColor::Unknown,
+            accent_color: AccentColor::Unknown,
+            wild_element: WildElement::Unicorn,
+            mouth: Mouth::Amaury,
+        };
+        assert_eq!(max_panda_actual, max_panda_expected);
+    }
+
 }
