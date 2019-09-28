@@ -409,15 +409,15 @@ impl PandaAttribute for Mouth {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct PandaAttributes {
-    physique: Physique,
-    pattern: Pattern,
-    eye_color: EyeColor,
-    eye_shape: EyeShape,
-    base_color: BaseColor,
-    highlight_color: HighlightColor,
-    accent_color: AccentColor,
-    wild_element: WildElement,
-    mouth: Mouth,
+    pub physique: Physique,
+    pub pattern: Pattern,
+    pub eye_color: EyeColor,
+    pub eye_shape: EyeShape,
+    pub base_color: BaseColor,
+    pub highlight_color: HighlightColor,
+    pub accent_color: AccentColor,
+    pub wild_element: WildElement,
+    pub mouth: Mouth,
 }
 
 impl PandaAttributes {

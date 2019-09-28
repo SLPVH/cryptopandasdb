@@ -10,3 +10,4 @@ edition = "2018"
 actix-web = "1.0.5"
 handlebars = "2.0.2"
 serde_json = "1.0.40"
+panda-base = { package = "cryptopandas_base", path = "../cryptopandas_base" }
