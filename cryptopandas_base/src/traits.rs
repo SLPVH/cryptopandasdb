@@ -311,7 +311,7 @@ impl PandaAttribute for WildElement {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Mouth {
     Standard,
