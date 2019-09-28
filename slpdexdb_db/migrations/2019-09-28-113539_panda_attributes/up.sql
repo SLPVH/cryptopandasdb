@@ -70,6 +70,7 @@ CREATE TABLE panda
     id bigint PRIMARY KEY,
     genesis_tx bigint NOT NULL,
     owner_tx bigint NOT NULL,
+    owner_tx_idx bigint NOT NULL,
     physique physique NOT NULL,
     pattern pattern NOT NULL,
     eye_color eye_color NOT NULL,
@@ -80,5 +81,5 @@ CREATE TABLE panda
     wild_element wild_element NOT NULL,
     mouth mouth NOT NULL,
     FOREIGN KEY (genesis_tx) REFERENCES tx (id) ON DELETE CASCADE,
-    FOREIGN KEY (owner_tx) REFERENCES tx (id) ON DELETE CASCADE
+    FOREIGN KEY (owner_tx, owner_tx_idx) REFERENCES tx_output (tx, idx) ON DELETE CASCADE
 );
