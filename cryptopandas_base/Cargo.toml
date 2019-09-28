@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 rand = "*"
+cashcontracts = { git = "https://github.com/slpdex/cashcontracts-rs" }

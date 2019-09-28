@@ -1,9 +1,21 @@
-use rand::Rng;
+use rand::{Rng, SeedableRng, rngs::StdRng};
+use cashcontracts::single_sha256;
+
+/// Create a seed from a block hash and a transaction ID
+pub fn create_seed(block_hash: &[u8; 32], tx_id: &[u8; 32]) -> [u8; 32] {
+    single_sha256(&[&block_hash[..], &tx_id[..]].concat())
+}
 
 /// Mixes parents genes. Parents genes are given by 48 5-bit integers, 
 /// and represented by 48 bytes.
-pub fn mix_genes(mut m_genes: [u8; 48], mut s_genes: [u8; 48]) -> [u8; 48] {
-    let mut rng = rand::thread_rng(); // TODO: Use seed sourced from blockchain
+pub fn mix_genes(mut m_genes: [u8; 48], mut s_genes: [u8; 48], seed: [u8; 32]) -> [u8; 48] {
+    /*
+    The algorithm is deterministic but should not be considered reproducible due to dependence on 
+    configuration and possible replacement in future library versions. 
+    For a secure reproducible generator, we recommend use of the rand_chacha crate directly.
+    */
+    // TODO: Make this reproducible using the rand_chacha crate
+    let mut rng: StdRng = SeedableRng::from_seed(seed);
 
     // Scramble parent genes
     for i in (0..48).step_by(4) {
