@@ -2,6 +2,7 @@ use std::convert::{TryFrom, TryInto};
 
 use num_enum::TryFromPrimitive;
 
+#[derive(Clone, Debug)]
 pub struct InvalidGeneInteger; // Gene too large
 
 pub trait PandaAttribute
@@ -45,7 +46,7 @@ pub enum Physique {
 impl PandaAttribute for Physique {
     fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
-            Ok(Physique::try_from(gene / 8).unwrap())
+            Ok(Physique::try_from(gene / 4).unwrap())
         } else {
             Err(InvalidGeneInteger)
         }
@@ -68,7 +69,7 @@ pub enum Pattern {
 impl PandaAttribute for Pattern {
     fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
-            Ok(Pattern::try_from(gene / 8).unwrap())
+            Ok(Pattern::try_from(gene / 4).unwrap())
         } else {
             Err(InvalidGeneInteger)
         }
@@ -138,7 +139,7 @@ pub enum EyeShape {
 impl PandaAttribute for EyeShape {
     fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
-            Ok(EyeShape::try_from(gene / 8).unwrap())
+            Ok(EyeShape::try_from(gene / 4).unwrap())
         } else {
             Err(InvalidGeneInteger)
         }
@@ -302,7 +303,7 @@ impl PandaAttribute for WildElement {
             if gene < 16 {
                 Ok(WildElement::Standard)
             } else {
-                Ok(WildElement::try_from(gene / 8).unwrap())
+                Ok(WildElement::try_from(gene / 4 - 3).unwrap())
             }
         } else {
             Err(InvalidGeneInteger)
@@ -326,7 +327,7 @@ pub enum Mouth {
 impl PandaAttribute for Mouth {
     fn from_gene(gene: u8) -> Result<Self, InvalidGeneInteger> {
         if gene < 32 {
-            Ok(Mouth::try_from(gene / 8).unwrap())
+            Ok(Mouth::try_from(gene / 4).unwrap())
         } else {
             Err(InvalidGeneInteger)
         }
@@ -350,14 +351,14 @@ impl PandaAttributes {
     fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
         Ok(PandaAttributes {
             physique: Physique::from_gene(genes[0])?,
-            pattern: Pattern::from_gene(genes[2])?,
-            eye_color: EyeColor::from_gene(genes[5])?,
-            eye_shape: EyeShape::from_gene(genes[8])?,
-            base_color: BaseColor::from_gene(genes[11])?,
-            highlight_color: HighlightColor::from_gene(genes[14])?,
-            accent_color: AccentColor::from_gene(genes[17])?,
-            wild_element: WildElement::from_gene(genes[20])?,
-            mouth: Mouth::from_gene(genes[23])?,
+            pattern: Pattern::from_gene(genes[4])?,
+            eye_color: EyeColor::from_gene(genes[8])?,
+            eye_shape: EyeShape::from_gene(genes[12])?,
+            base_color: BaseColor::from_gene(genes[16])?,
+            highlight_color: HighlightColor::from_gene(genes[20])?,
+            accent_color: AccentColor::from_gene(genes[24])?,
+            wild_element: WildElement::from_gene(genes[28])?,
+            mouth: Mouth::from_gene(genes[32])?,
         })
     }
 }
@@ -388,4 +389,57 @@ impl PandaTraits {
             mouth: Mouth::from_gene_slice(&genes[32..36].try_into().unwrap())?,
         })
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wild_elements() {
+        for i in 0..16 {
+            assert_eq!(WildElement::Standard, WildElement::from_gene(i).unwrap());
+        }
+        for i in 16..20 {
+            assert_eq!(WildElement::ElkHorns, WildElement::from_gene(i).unwrap());
+        }
+        for i in 20..24 {
+            assert_eq!(WildElement::ThirdEye, WildElement::from_gene(i).unwrap());
+        }
+        for i in 24..28 {
+            assert_eq!(WildElement::BushyTail, WildElement::from_gene(i).unwrap());
+        }
+        for i in 28..32 {
+            assert_eq!(WildElement::Unicorn, WildElement::from_gene(i).unwrap());
+        }
+    }
+
+    #[test]
+    fn physique() {
+        for i in 0..4 {
+            assert_eq!(Physique::Standard, Physique::from_gene(i).unwrap());
+        }
+        for i in 4..8 {
+            assert_eq!(Physique::Small, Physique::from_gene(i).unwrap());
+        }
+        for i in 8..12 {
+            assert_eq!(Physique::Slim, Physique::from_gene(i).unwrap());
+        }
+        for i in 12..16 {
+            assert_eq!(Physique::SmallFace, Physique::from_gene(i).unwrap());
+        }
+        for i in 16..20 {
+            assert_eq!(Physique::Chubby, Physique::from_gene(i).unwrap());
+        }
+        for i in 20..24 {
+            assert_eq!(Physique::Overweight, Physique::from_gene(i).unwrap());
+        }
+        for i in 24..28 {
+            assert_eq!(Physique::Athletic, Physique::from_gene(i).unwrap());
+        }
+        for i in 28..32 {
+            assert_eq!(Physique::Genius, Physique::from_gene(i).unwrap());
+        }
+    }
+    
 }
