@@ -1,6 +1,7 @@
 use std::convert::{TryFrom, TryInto};
 
 use num_enum::TryFromPrimitive;
+use serde::Serialize;
 
 #[derive(Clone, Debug)]
 pub struct InvalidGeneInteger; // Gene too large
@@ -30,12 +31,13 @@ impl<U: PandaAttribute> PandaTrait for U {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Physique {
     Standard, // Default is a reversed word
     Small,
     Slim,
+    #[serde(rename = "Small Face")]
     SmallFace,
     Chubby,
     Overweight,
@@ -53,11 +55,14 @@ impl PandaAttribute for Physique {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Pattern {
+    #[serde(rename = "Panda I")]
     PandaI,
+    #[serde(rename = "Panda II")]
     PandaII,
+    #[serde(rename = "Panda III")]
     PandaIII,
     Uniform,
     Cow,
@@ -76,7 +81,7 @@ impl PandaAttribute for Pattern {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeColor {
     Thundergrey,
@@ -95,21 +100,37 @@ pub enum EyeColor {
     Doridnudibranch,
     Parakeet,
     Cyan,
-    PumpkinOne,
-    LimegreenOne,
-    BridesmaidOne,
+    #[serde(rename = "Pumpkin I")]
+    PumpkinI,
+    #[serde(rename = "Limegreen I")]
+    LimegreenI,
+    #[serde(rename = "Bridesmaid I")]
+    BridesmaidI,
+    #[serde(rename = "Bubblegum I")]
     BubblegumI,
+    #[serde(rename = "Twilightsparkle I")]
     TwilightsparkleI,
+    #[serde(rename = "Palejade I")]
     PalejadeI,
+    #[serde(rename = "Pinefresh I")]
     PinefreshI,
+    #[serde(rename = "Eclipse I")]
     EclipseI,
+    #[serde(rename = "Babypuke II")]
     BabypukeII,
+    #[serde(rename = "Downbythebay II")]
     DownbythebayII,
+    #[serde(rename = "Autumnmoon II")]
     AutumnmoonII,
+    #[serde(rename = "Oasis II")]
     OasisII,
+    #[serde(rename = "Gemini III")]
     GeminiIII,
+    #[serde(rename = "Dioscuri III")]
     DioscuriIII,
-    KaleidoscopeIIII,
+    #[serde(rename = "Kaleidoscope IV")]
+    KaleidoscopeIV,
+    #[serde(rename = "???")]
     Unknown,
 }
 
@@ -123,7 +144,7 @@ impl PandaAttribute for EyeColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum EyeShape {
     Standard,
@@ -146,7 +167,7 @@ impl PandaAttribute for EyeShape {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum BaseColor {
     Shadowgrey,
@@ -165,21 +186,37 @@ pub enum BaseColor {
     Dragonfruit,
     Hintomint,
     Bananacream,
+    #[serde(rename = "Cloudwhite I")]
     CloudwhiteI,
+    #[serde(rename = "Cornflower I")]
     CornflowerI,
+    #[serde(rename = "Oldlace I")]
     OldlaceI,
+    #[serde(rename = "Koala I")]
     KoalaI,
+    #[serde(rename = "Lavender I")]
     LavenderI,
+    #[serde(rename = "Glacier I")]
     GlacierI,
+    #[serde(rename = "Redvelvet I")]
     RedvelvetI,
+    #[serde(rename = "Verdigris I")]
     VerdigrisI,
+    #[serde(rename = "Icicle II")]
     IcicleII,
+    #[serde(rename = "Onyx II")]
     OnyxII,
+    #[serde(rename = "Hyacinth II")]
     HyacinthII,
+    #[serde(rename = "Martian II")]
     MartianII,
+    #[serde(rename = "Hotcocoa III")]
     HotcocoaIII,
+    #[serde(rename = "Shamrock III")]
     ShamrockIII,
-    FirstblushIIII,
+    #[serde(rename = "Firstblush IV")]
+    FirstblushIV,
+    #[serde(rename = "???")]
     Unknown,
 }
 
@@ -193,7 +230,7 @@ impl PandaAttribute for BaseColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum HighlightColor {
     Cyborg,
@@ -212,21 +249,37 @@ pub enum HighlightColor {
     Lemonade,
     Chocolate,
     Butterscotch,
+    #[serde(rename = "Ooze I")]
     OozeI,
+    #[serde(rename = "Safetyvest I")]
     SafetyvestI,
+    #[serde(rename = "Turtleback I")]
     TurtlebackI,
+    #[serde(rename = "Rosequartz I")]
     RosequartzI,
+    #[serde(rename = "Wolfgrey I")]
     WolfgreyI,
+    #[serde(rename = "Cerulian I")]
     CerulianI,
+    #[serde(rename = "Skyblue I")]
     SkyblueI,
+    #[serde(rename = "Garnet I")]
     GarnetI,
+    #[serde(rename = "Peppermint II")]
     PeppermintII,
+    #[serde(rename = "Universe II")]
     UniverseII,
+    #[serde(rename = "Royalblue II")]
     RoyalblueII,
+    #[serde(rename = "Mertail II")]
     MertailII,
+    #[serde(rename = "Inflatablepool III")]
     InflatablepoolIII,
+    #[serde(rename = "Pearl III")]
     PearlIII,
-    PrairieroseIIII,
+    #[serde(rename = "Prairierose IV")]
+    PrairieroseIV,
+    #[serde(rename = "???")]
     Unknown,
 }
 
@@ -240,7 +293,7 @@ impl PandaAttribute for HighlightColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum AccentColor {
     Belleblue,
@@ -259,21 +312,37 @@ pub enum AccentColor {
     Missmuffett,
     Morningglory,
     Frosting,
+    #[serde(rename = "Daffodil I")]
     DaffodilI,
+    #[serde(rename = "Flamingo I")]
     FlamingoI,
+    #[serde(rename = "Buttercup I")]
     ButtercupI,
+    #[serde(rename = "Bloodred I")]
     BloodredI,
+    #[serde(rename = "Atlantis I")]
     AtlantisI,
+    #[serde(rename = "Summerbonnet I")]
     SummerbonnetI,
+    #[serde(rename = "Periwinkle I")]
     PeriwinkleI,
+    #[serde(rename = "Patrickstarfish I")]
     PatrickstarfishI,
+    #[serde(rename = "Seafoam II")]
     SeafoamII,
+    #[serde(rename = "Cobalt II")]
     CobaltII,
+    #[serde(rename = "Mallowflower II")]
     MallowflowerII,
+    #[serde(rename = "Mintmacaron II")]
     MintmacaronII,
+    #[serde(rename = "Sully III")]
     SullyIII,
+    #[serde(rename = "Fallspice III")]
     FallspiceIII,
-    DreamboatIIII,
+    #[serde(rename = "Dreamboat IV")]
+    DreamboatIV,
+    #[serde(rename = "???")]
     Unknown,
 }
 
@@ -287,12 +356,16 @@ impl PandaAttribute for AccentColor {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum WildElement {
+    #[serde(rename = "None")]
     Standard,
+    #[serde(rename = "Elk Horns")]
     ElkHorns,
+    #[serde(rename = "Third Eye")]
     ThirdEye,
+    #[serde(rename = "Bushy Tail")]
     BushyTail,
     Unicorn,
 }
@@ -311,7 +384,7 @@ impl PandaAttribute for WildElement {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Mouth {
     Standard,
@@ -334,17 +407,17 @@ impl PandaAttribute for Mouth {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct PandaAttributes {
-    physique: Physique,
-    pattern: Pattern,
-    eye_color: EyeColor,
-    eye_shape: EyeShape,
-    base_color: BaseColor,
-    highlight_color: HighlightColor,
-    accent_color: AccentColor,
-    wild_element: WildElement,
-    mouth: Mouth,
+    pub physique: Physique,
+    pub pattern: Pattern,
+    pub eye_color: EyeColor,
+    pub eye_shape: EyeShape,
+    pub base_color: BaseColor,
+    pub highlight_color: HighlightColor,
+    pub accent_color: AccentColor,
+    pub wild_element: WildElement,
+    pub mouth: Mouth,
 }
 
 impl PandaAttributes {

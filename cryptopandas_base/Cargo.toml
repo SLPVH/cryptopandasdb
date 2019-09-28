@@ -10,3 +10,4 @@ edition = "2018"
 num_enum = "*"
 oorandom = "*"
 cashcontracts = { git = "https://github.com/slpdex/cashcontracts-rs" }
+serde = { version = "1.0.97", features = ["derive"] }
