@@ -1,9 +1,8 @@
 use std::convert::{TryFrom, TryInto};
 
-use diesel::prelude::*;
 use diesel_derive_enum::DbEnum;
-use num_enum::TryFromPrimitive;
-use serde::{Serialize, Deserialize};
+use num_enum::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct InvalidGeneInteger; // Gene too large
@@ -33,7 +32,7 @@ impl<U: PandaAttribute> PandaTrait for U {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Physique"]
 #[repr(u8)]
 pub enum PhysiqueTrait {
@@ -58,7 +57,7 @@ impl PandaAttribute for PhysiqueTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Pattern"]
 #[repr(u8)]
 pub enum PatternTrait {
@@ -85,7 +84,7 @@ impl PandaAttribute for PatternTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Eye_color"]
 #[repr(u8)]
 pub enum EyeColorTrait {
@@ -149,7 +148,7 @@ impl PandaAttribute for EyeColorTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Eye_shape"]
 #[repr(u8)]
 pub enum EyeShapeTrait {
@@ -173,7 +172,7 @@ impl PandaAttribute for EyeShapeTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Base_color"]
 #[repr(u8)]
 pub enum BaseColorTrait {
@@ -237,7 +236,7 @@ impl PandaAttribute for BaseColorTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Highlight_color"]
 #[repr(u8)]
 pub enum HighlightColorTrait {
@@ -301,7 +300,7 @@ impl PandaAttribute for HighlightColorTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Accent_color"]
 #[repr(u8)]
 pub enum AccentColorTrait {
@@ -365,7 +364,7 @@ impl PandaAttribute for AccentColorTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, DbEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, TryFromPrimitive, IntoPrimitive, DbEnum)]
 #[DieselType = "Wild_element"]
 #[repr(u8)]
 pub enum WildElementTrait {
@@ -394,7 +393,18 @@ impl PandaAttribute for WildElementTrait {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, TryFromPrimitive, DbEnum)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    TryFromPrimitive,
+    IntoPrimitive,
+    DbEnum,
+)]
 #[DieselType = "Mouth"]
 #[repr(u8)]
 pub enum MouthTrait {
@@ -449,7 +459,7 @@ impl PandaAttributes {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PandaTraits {
-    PhysiqueTrait: [PhysiqueTrait; 4],
+    physique: [PhysiqueTrait; 4],
     pattern: [PatternTrait; 4],
     eye_color: [EyeColorTrait; 4],
     eye_shape: [EyeShapeTrait; 4],
@@ -457,22 +467,70 @@ pub struct PandaTraits {
     highlight_color: [HighlightColorTrait; 4],
     accent_color: [AccentColorTrait; 4],
     wild_element: [WildElementTrait; 4],
-    MouthTrait: [MouthTrait; 4],
+    mouth: [MouthTrait; 4],
 }
 
 impl PandaTraits {
-    fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
+    pub fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
         Ok(PandaTraits {
-            PhysiqueTrait: PhysiqueTrait::from_gene_slice(&genes[0..4].try_into().unwrap())?,
+            physique: PhysiqueTrait::from_gene_slice(&genes[0..4].try_into().unwrap())?,
             pattern: PatternTrait::from_gene_slice(&genes[4..8].try_into().unwrap())?,
             eye_color: EyeColorTrait::from_gene_slice(&genes[8..12].try_into().unwrap())?,
             eye_shape: EyeShapeTrait::from_gene_slice(&genes[12..16].try_into().unwrap())?,
             base_color: BaseColorTrait::from_gene_slice(&genes[16..20].try_into().unwrap())?,
-            highlight_color: HighlightColorTrait::from_gene_slice(&genes[20..24].try_into().unwrap())?,
+            highlight_color: HighlightColorTrait::from_gene_slice(
+                &genes[20..24].try_into().unwrap(),
+            )?,
             accent_color: AccentColorTrait::from_gene_slice(&genes[24..28].try_into().unwrap())?,
             wild_element: WildElementTrait::from_gene_slice(&genes[28..32].try_into().unwrap())?,
-            MouthTrait: MouthTrait::from_gene_slice(&genes[32..36].try_into().unwrap())?,
+            mouth: MouthTrait::from_gene_slice(&genes[32..36].try_into().unwrap())?,
         })
+    }
+
+    pub fn to_attributes(&self) -> PandaAttributes {
+        PandaAttributes {
+            physique: self.physique[0],
+            pattern: self.pattern[0],
+            eye_color: self.eye_color[0],
+            eye_shape: self.eye_shape[0],
+            base_color: self.base_color[0],
+            highlight_color: self.highlight_color[0],
+            accent_color: self.accent_color[0],
+            wild_element: self.wild_element[0],
+            mouth: self.mouth[0],
+        }
+    }
+
+    pub fn to_byte_public_genes(&self) -> [u8; 36] {
+        let mut genes: [u8; 36] = [0; 36];
+        for (i, physique) in self.physique.iter().cloned().enumerate() {
+            genes[i] = physique.into();
+        }
+        for (i, pattern) in self.pattern.iter().cloned().enumerate() {
+            genes[4 + i] = pattern.into();
+        }
+        for (i, eye_color) in self.eye_color.iter().cloned().enumerate() {
+            genes[8 + i] = eye_color.into();
+        }
+        for (i, eye_shape) in self.eye_shape.iter().cloned().enumerate() {
+            genes[12 + i] = eye_shape.into();
+        }
+        for (i, base_color) in self.base_color.iter().cloned().enumerate() {
+            genes[16 + i] = base_color.into();
+        }
+        for (i, highlight_color) in self.highlight_color.iter().cloned().enumerate() {
+            genes[20 + i] = highlight_color.into();
+        }
+        for (i, accent_color) in self.accent_color.iter().cloned().enumerate() {
+            genes[24 + i] = accent_color.into();
+        }
+        for (i, wild_element) in self.wild_element.iter().cloned().enumerate() {
+            genes[28 + i] = wild_element.into();
+        }
+        for (i, mouth) in self.mouth.iter().cloned().enumerate() {
+            genes[32 + i] = mouth.into();
+        }
+        genes
     }
 }
 
@@ -483,26 +541,44 @@ mod tests {
     #[test]
     fn wild_elements() {
         for i in 0..16 {
-            assert_eq!(WildElementTrait::Standard, WildElementTrait::from_gene(i).unwrap());
+            assert_eq!(
+                WildElementTrait::Standard,
+                WildElementTrait::from_gene(i).unwrap()
+            );
         }
         for i in 16..20 {
-            assert_eq!(WildElementTrait::ElkHorns, WildElementTrait::from_gene(i).unwrap());
+            assert_eq!(
+                WildElementTrait::ElkHorns,
+                WildElementTrait::from_gene(i).unwrap()
+            );
         }
         for i in 20..24 {
-            assert_eq!(WildElementTrait::ThirdEye, WildElementTrait::from_gene(i).unwrap());
+            assert_eq!(
+                WildElementTrait::ThirdEye,
+                WildElementTrait::from_gene(i).unwrap()
+            );
         }
         for i in 24..28 {
-            assert_eq!(WildElementTrait::BushyTail, WildElementTrait::from_gene(i).unwrap());
+            assert_eq!(
+                WildElementTrait::BushyTail,
+                WildElementTrait::from_gene(i).unwrap()
+            );
         }
         for i in 28..32 {
-            assert_eq!(WildElementTrait::Unicorn, WildElementTrait::from_gene(i).unwrap());
+            assert_eq!(
+                WildElementTrait::Unicorn,
+                WildElementTrait::from_gene(i).unwrap()
+            );
         }
     }
 
     #[test]
-    fn PhysiqueTrait() {
+    fn physique() {
         for i in 0..4 {
-            assert_eq!(PhysiqueTrait::Standard, PhysiqueTrait::from_gene(i).unwrap());
+            assert_eq!(
+                PhysiqueTrait::Standard,
+                PhysiqueTrait::from_gene(i).unwrap()
+            );
         }
         for i in 4..8 {
             assert_eq!(PhysiqueTrait::Small, PhysiqueTrait::from_gene(i).unwrap());
@@ -511,16 +587,25 @@ mod tests {
             assert_eq!(PhysiqueTrait::Slim, PhysiqueTrait::from_gene(i).unwrap());
         }
         for i in 12..16 {
-            assert_eq!(PhysiqueTrait::SmallFace, PhysiqueTrait::from_gene(i).unwrap());
+            assert_eq!(
+                PhysiqueTrait::SmallFace,
+                PhysiqueTrait::from_gene(i).unwrap()
+            );
         }
         for i in 16..20 {
             assert_eq!(PhysiqueTrait::Chubby, PhysiqueTrait::from_gene(i).unwrap());
         }
         for i in 20..24 {
-            assert_eq!(PhysiqueTrait::Overweight, PhysiqueTrait::from_gene(i).unwrap());
+            assert_eq!(
+                PhysiqueTrait::Overweight,
+                PhysiqueTrait::from_gene(i).unwrap()
+            );
         }
         for i in 24..28 {
-            assert_eq!(PhysiqueTrait::Athletic, PhysiqueTrait::from_gene(i).unwrap());
+            assert_eq!(
+                PhysiqueTrait::Athletic,
+                PhysiqueTrait::from_gene(i).unwrap()
+            );
         }
         for i in 28..32 {
             assert_eq!(PhysiqueTrait::Genius, PhysiqueTrait::from_gene(i).unwrap());
@@ -563,4 +648,27 @@ mod tests {
         assert_eq!(max_panda_actual, max_panda_expected);
     }
 
+    #[test]
+    fn byte_genes_conversion() {
+        let panda_traits_expected = PandaTraits {
+            physique: [PhysiqueTrait::Standard; 4],
+            pattern: [PatternTrait::PandaI; 4],
+            eye_color: [EyeColorTrait::Thundergrey; 4],
+            eye_shape: [EyeShapeTrait::Standard; 4],
+            base_color: [BaseColorTrait::Shadowgrey; 4],
+            highlight_color: [HighlightColorTrait::Cyborg; 4],
+            accent_color: [AccentColorTrait::Belleblue; 4],
+            wild_element: [WildElementTrait::Standard; 4],
+            mouth: [MouthTrait::Standard; 4],
+        };
+        let public_genes = panda_traits_expected.to_byte_public_genes();
+        // Extend short genes
+        let genes_extended = [0; 12];
+        let genes_full_vec = &[&public_genes[..], &genes_extended[..]]
+            .concat();
+        let mut genes_full = [0; 48];
+        genes_full.copy_from_slice(genes_full_vec);
+        let panda_traits_actual = PandaTraits::from_genes(&genes_full).unwrap();
+        assert_eq!(panda_traits_expected, panda_traits_actual)
+    }
 }
