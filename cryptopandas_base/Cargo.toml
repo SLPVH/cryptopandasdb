@@ -11,5 +11,5 @@ num_enum = "*"
 oorandom = "*"
 cashcontracts = { git = "https://github.com/slpdex/cashcontracts-rs" }
 diesel = { version = "1.4.2", features = ["postgres", "chrono"] }
-diesel-derive-enum = { version = "0.4", features = ["postgres"] }
+diesel-derive-enum = { version = "0.4.4", features = ["postgres"] }
 serde = { version = "1.0.97", features = ["derive"] }
