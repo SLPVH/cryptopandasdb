@@ -442,7 +442,7 @@ pub struct PandaAttributes {
 }
 
 impl PandaAttributes {
-    fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
+    pub fn from_genes(genes: &[u8; 48]) -> Result<Self, InvalidGeneInteger> {
         Ok(PandaAttributes {
             physique: PhysiqueTrait::from_gene(genes[0])?,
             pattern: PatternTrait::from_gene(genes[4])?,

@@ -283,6 +283,6 @@ pub struct DbPanda {
     pub highlight_color: HighlightColorTrait,
     pub accent_color: AccentColorTrait,
     pub wild_element: WildElementTrait,
-    pub MouthTrait: MouthTrait,
+    pub mouth: MouthTrait,
     pub genes: Vec<u8>
 }
