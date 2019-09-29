@@ -14,7 +14,7 @@ CREATE TYPE eye_color AS ENUM
     'limegreen_i', 'bridesmaid_i', 'bubblegum_i',
     'twilightsparkle_i', 'palejade_i', 'pinefresh_i',
     'eclipse_i', 'babypuke_ii', 'downbythebay_ii',
-    'autumnmoon_ii', 'Oasis_ii', 'gemini_iii',
+    'autumnmoon_ii', 'oasis_ii', 'gemini_iii',
     'dioscuri_iii', 'kaleidoscope_iv', 'unknown');
 
 CREATE TYPE eye_shape AS ENUM
@@ -67,7 +67,7 @@ CREATE TYPE mouth AS ENUM
 
 CREATE TABLE panda
 (
-    id bigint PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     genesis_tx bigint NOT NULL,
     owner_tx bigint NOT NULL,
     owner_tx_idx bigint NOT NULL,

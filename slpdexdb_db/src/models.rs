@@ -275,6 +275,7 @@ pub struct DbPanda {
     pub genesis_tx: i64,
     pub owner_tx: i64,
     pub owner_tx_idx: i64,
+    // TODO: Is this needed?
     pub physique: PhysiqueTrait,
     pub pattern: PatternTrait,
     pub eye_color: EyeColorTrait,
@@ -285,4 +286,16 @@ pub struct DbPanda {
     pub wild_element: WildElementTrait,
     pub mouth: MouthTrait,
     pub genes: Vec<u8>
+}
+
+impl DbPanda {
+    pub fn genes(&self) -> [u8; 48] {
+        let mut genes: [u8; 48] = [0; 48];
+        genes.copy_from_slice(&self.genes);
+        genes
+    }
+
+    pub fn get_attributes(&self) -> Result<PandaAttributes, InvalidGeneInteger> {
+        PandaAttributes::from_genes(&self.genes())
+    }
 }
