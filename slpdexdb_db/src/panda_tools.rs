@@ -10,7 +10,7 @@ use crate::{models::*, schema};
 pub fn insert_panda_from_traits(
     genesis_tx: &i64, 
     owner_tx: &i64, 
-    owner_tx_idx: &i64, 
+    owner_tx_idx: &i32, 
     panda_traits: &PandaTraits,
     secret_genes: &[u8; 12],
     conn: &PgConnection
@@ -56,7 +56,7 @@ pub fn insert_panda_from_traits(
 pub fn insert_panda_from_genes(
     genesis_tx: &i64, 
     owner_tx: &i64, 
-    owner_tx_idx: &i64, 
+    owner_tx_idx: &i32, 
     genes: &[u8; 48],
     conn: &PgConnection
 ) -> Result<i64, DieselError> {
@@ -91,7 +91,48 @@ pub fn insert_panda_from_genes(
 
 pub fn get_panda_by_id(panda_id: &i64, conn: &PgConnection) -> Result<DbPanda, DieselError> {
     use self::schema::panda::dsl as panda_dsl;
-    panda_dsl::panda.filter(panda_dsl::id.eq(panda_id)).first(conn)
+    panda_dsl::panda
+        .filter(panda_dsl::id.eq(panda_id))
+        .select((
+            panda_dsl::id, 
+            panda_dsl::genesis_tx, 
+            panda_dsl::owner_tx, 
+            panda_dsl::owner_tx_idx,
+            panda_dsl::genes))
+        .first(conn)
+}
+
+pub fn get_panda_by_token_id(token_id: &[u8], conn:&PgConnection) -> Result<DbPanda, DieselError> {
+    use self::schema::{panda::dsl as panda_dsl, tx::dsl as tx_dsl};
+
+    panda_dsl::panda
+        .inner_join(tx_dsl::tx)
+        .filter(tx_dsl::hash.eq(token_id))
+        .select((
+            panda_dsl::id, 
+            panda_dsl::genesis_tx, 
+            panda_dsl::owner_tx, 
+            panda_dsl::owner_tx_idx,
+            panda_dsl::genes))
+        .first::<DbPanda>(conn)
+}
+
+pub fn get_panda_by_addr(address: &[u8], conn:&PgConnection) -> Result<Vec<DbPanda>, DieselError> {
+    use self::schema::{panda::dsl as panda_dsl, tx_output::dsl as output_dsl};
+
+    output_dsl::tx_output
+        .inner_join(panda_dsl::panda.on(
+            panda_dsl::owner_tx.eq(output_dsl::tx).and(
+                panda_dsl::owner_tx_idx.eq(output_dsl::idx))
+        ))
+        .filter(output_dsl::address.eq(Some(address)))
+        .select((
+            panda_dsl::id, 
+            panda_dsl::genesis_tx, 
+            panda_dsl::owner_tx, 
+            panda_dsl::owner_tx_idx,
+            panda_dsl::genes))
+        .load::<DbPanda>(conn)
 }
 
 #[cfg(test)]

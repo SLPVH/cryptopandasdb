@@ -70,7 +70,7 @@ CREATE TABLE panda
     id BIGSERIAL PRIMARY KEY,
     genesis_tx bigint NOT NULL,
     owner_tx bigint NOT NULL,
-    owner_tx_idx bigint NOT NULL,
+    owner_tx_idx int NOT NULL,
     physique physique NOT NULL,
     pattern pattern NOT NULL,
     eye_color eye_color NOT NULL,

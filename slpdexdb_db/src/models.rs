@@ -256,7 +256,7 @@ impl Block {
 pub struct NewPanda<'a> {
     pub genesis_tx: &'a i64,
     pub owner_tx: &'a i64,
-    pub owner_tx_idx: &'a i64,
+    pub owner_tx_idx: &'a i32,
     pub physique: &'a PhysiqueTrait,
     pub pattern: &'a PatternTrait,
     pub eye_color: &'a EyeColorTrait,
@@ -274,17 +274,17 @@ pub struct DbPanda {
     pub id: i64,
     pub genesis_tx: i64,
     pub owner_tx: i64,
-    pub owner_tx_idx: i64,
+    pub owner_tx_idx: i32,
     // TODO: Is this needed?
-    pub physique: PhysiqueTrait,
-    pub pattern: PatternTrait,
-    pub eye_color: EyeColorTrait,
-    pub eye_shape: EyeShapeTrait,
-    pub base_color: BaseColorTrait,
-    pub highlight_color: HighlightColorTrait,
-    pub accent_color: AccentColorTrait,
-    pub wild_element: WildElementTrait,
-    pub mouth: MouthTrait,
+    // pub physique: PhysiqueTrait,
+    // pub pattern: PatternTrait,
+    // pub eye_color: EyeColorTrait,
+    // pub eye_shape: EyeShapeTrait,
+    // pub base_color: BaseColorTrait,
+    // pub highlight_color: HighlightColorTrait,
+    // pub accent_color: AccentColorTrait,
+    // pub wild_element: WildElementTrait,
+    // pub mouth: MouthTrait,
     pub genes: Vec<u8>
 }
 
