@@ -80,6 +80,7 @@ CREATE TABLE panda
     accent_color accent_color NOT NULL,
     wild_element wild_element NOT NULL,
     mouth mouth NOT NULL,
+    genes bytea NOT NULL,
     FOREIGN KEY (genesis_tx) REFERENCES tx (id) ON DELETE CASCADE,
     FOREIGN KEY (owner_tx, owner_tx_idx) REFERENCES tx_output (tx, idx) ON DELETE CASCADE
 );

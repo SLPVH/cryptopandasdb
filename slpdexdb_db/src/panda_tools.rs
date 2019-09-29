@@ -3,18 +3,33 @@ use diesel::{
     r2d2::{self, ConnectionManager},
     result::Error as DieselError
 };
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 use panda_base::traits::*;
-use crate::models::*;
+use crate::{models::*, schema};
 
-pub fn create_panda(
+pub fn create_panda_from_traits(
     genesis_tx: &i64, 
     owner_tx: &i64, 
     owner_tx_idx: &i64, 
-    pa: &PandaAttributes, 
-    pool: Pool
+    panda_traits: &PandaTraits,
+    secret_genes: [u8; 12],
+    conn: &PgConnection
 ) -> Result<i64, DieselError> {
+    use self::schema::panda::dsl as panda_dsl;
+
+    // Pull panda attributes from traits
+    let pa = panda_traits.to_attributes();
+    
+    // Get public genes
+    let public_genes = panda_traits.to_byte_public_genes();
+
+    // Extend short genes
+    let genes_extended = [0; 12];
+    let genes_full_vec = &[&public_genes[..], &genes_extended[..]]
+        .concat();
+    let mut genes_full = [0; 48];
+    genes_full.copy_from_slice(genes_full_vec);
+
     let new_panda = NewPanda {
         genesis_tx,
         owner_tx,
@@ -27,6 +42,14 @@ pub fn create_panda(
         highlight_color: &pa.highlight_color,
         accent_color: &pa.accent_color,
         wild_element: &pa.wild_element,
-        mouth: &pa.mouth
+        mouth: &pa.mouth,
+        genes: &genes_full[..]
     };
+
+    // Insert record
+    diesel::insert_into(panda_dsl::panda)
+        .values(&new_panda)
+        .returning(panda_dsl::id)
+        .get_results(conn).map(|res_vec| res_vec[0])  
 }
+

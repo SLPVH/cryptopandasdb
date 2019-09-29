@@ -265,7 +265,8 @@ pub struct NewPanda<'a> {
     pub highlight_color: &'a HighlightColorTrait,
     pub accent_color: &'a AccentColorTrait,
     pub wild_element: &'a WildElementTrait,
-    pub mouth: &'a MouthTrait
+    pub mouth: &'a MouthTrait,
+    pub genes: &'a [u8]
 }
 
 #[derive(Queryable)]
@@ -282,5 +283,6 @@ pub struct DbPanda {
     pub highlight_color: HighlightColorTrait,
     pub accent_color: AccentColorTrait,
     pub wild_element: WildElementTrait,
-    pub MouthTrait: MouthTrait
+    pub MouthTrait: MouthTrait,
+    pub genes: Vec<u8>
 }
