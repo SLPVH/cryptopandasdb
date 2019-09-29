@@ -39,15 +39,15 @@ fn user(hb: web::Data<Handlebars>, info: web::Path<(String, String)>) -> HttpRes
 fn panda_by_id(hb: web::Data<Handlebars>, txid: web::Path<String>) -> HttpResponse {
     // TODO: Get from database
     let panda_attribute = PandaAttributes {
-        physique: Physique::SmallFace,
-        pattern: Pattern::Stripes,
-        eye_color: EyeColor::Thundergrey,
-        eye_shape: EyeShape::Caffeine,
-        base_color: BaseColor::Harbourfog,
-        highlight_color: HighlightColor::Lemonade,
-        accent_color: AccentColor::Belleblue,
-        wild_element: WildElement::ThirdEye,
-        mouth: Mouth::Walrus,
+        physique: PhysiqueTrait::SmallFace,
+        pattern: PatternTrait::Stripes,
+        eye_color: EyeColorTrait::Thundergrey,
+        eye_shape: EyeShapeTrait::Caffeine,
+        base_color: BaseColorTrait::Harbourfog,
+        highlight_color: HighlightColorTrait::Lemonade,
+        accent_color: AccentColorTrait::Belleblue,
+        wild_element: WildElementTrait::ThirdEye,
+        mouth: MouthTrait::Walrus,
     };
     let data = serde_json::to_value(panda_attribute).unwrap();
     let body = hb.render("panda", &data).unwrap();

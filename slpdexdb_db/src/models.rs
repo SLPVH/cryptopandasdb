@@ -2,7 +2,7 @@ use crate::schema::*;
 use slpdexdb_base::BlockHeader;
 use diesel::data_types::PgNumeric;
 use diesel::sql_types::{Binary, BigInt, Numeric, Integer, Nullable};
-
+use panda_base::traits::*;
 
 #[derive(Queryable)]
 #[derive(Insertable)]
@@ -248,5 +248,54 @@ impl Block {
             bits: self.bits as u32,
             nonce: self.nonce as u32,
         }
+    }
+}
+
+#[derive(Insertable)]
+#[table_name = "panda"]
+pub struct NewPanda<'a> {
+    pub genesis_tx: &'a i64,
+    pub owner_tx: &'a i64,
+    pub owner_tx_idx: &'a i64,
+    pub physique: &'a PhysiqueTrait,
+    pub pattern: &'a PatternTrait,
+    pub eye_color: &'a EyeColorTrait,
+    pub eye_shape: &'a EyeShapeTrait,
+    pub base_color: &'a BaseColorTrait,
+    pub highlight_color: &'a HighlightColorTrait,
+    pub accent_color: &'a AccentColorTrait,
+    pub wild_element: &'a WildElementTrait,
+    pub mouth: &'a MouthTrait,
+    pub genes: &'a [u8]
+}
+
+#[derive(Queryable)]
+pub struct DbPanda {
+    pub id: i64,
+    pub genesis_tx: i64,
+    pub owner_tx: i64,
+    pub owner_tx_idx: i64,
+    // TODO: Is this needed?
+    pub physique: PhysiqueTrait,
+    pub pattern: PatternTrait,
+    pub eye_color: EyeColorTrait,
+    pub eye_shape: EyeShapeTrait,
+    pub base_color: BaseColorTrait,
+    pub highlight_color: HighlightColorTrait,
+    pub accent_color: AccentColorTrait,
+    pub wild_element: WildElementTrait,
+    pub mouth: MouthTrait,
+    pub genes: Vec<u8>
+}
+
+impl DbPanda {
+    pub fn genes(&self) -> [u8; 48] {
+        let mut genes: [u8; 48] = [0; 48];
+        genes.copy_from_slice(&self.genes);
+        genes
+    }
+
+    pub fn get_attributes(&self) -> Result<PandaAttributes, InvalidGeneInteger> {
+        PandaAttributes::from_genes(&self.genes())
     }
 }

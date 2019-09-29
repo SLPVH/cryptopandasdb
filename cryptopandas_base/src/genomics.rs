@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
-use oorandom::Rand64;
 use cashcontracts::single_sha256;
+use oorandom::Rand64;
 
 /// Create a seed from a block hash and a transaction ID
 pub fn create_seed(block_hash: &[u8; 32], tx_id: &[u8; 32]) -> u128 {
@@ -9,7 +9,7 @@ pub fn create_seed(block_hash: &[u8; 32], tx_id: &[u8; 32]) -> u128 {
     u128::from_be_bytes(digest[..16].try_into().unwrap())
 }
 
-/// Mixes parents genes. Parents genes are given by 48 5-bit integers, 
+/// Mixes parents genes. Parents genes are given by 48 5-bit integers,
 /// and represented by 48 bytes.
 pub fn mix_genes(mut m_genes: [u8; 48], mut s_genes: [u8; 48], seed: u128) -> [u8; 48] {
     let mut rng = Rand64::new(seed);
