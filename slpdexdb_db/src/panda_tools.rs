@@ -1,8 +1,10 @@
 use diesel::{
     prelude::*,
+    r2d2::{self, ConnectionManager},
     result::Error as DieselError
 };
 
+use panda_base::traits::*;
 use crate::{models::*, schema};
 
 pub fn insert_panda_from_traits(
