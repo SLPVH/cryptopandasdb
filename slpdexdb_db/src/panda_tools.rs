@@ -89,9 +89,17 @@ pub fn insert_panda_from_genes(
         .get_results(conn).map(|res_vec| res_vec[0])  
 }
 
-pub fn get_panda_by_id(panda_id: &i64, conn: &PgConnection) -> Result<DbPanda, DieselError> {
+pub fn get_pandas_by_ids(panda_ids: Vec<i64>, conn: &PgConnection) -> Result<Vec<DbPanda>, DieselError> {
     use self::schema::panda::dsl as panda_dsl;
-    panda_dsl::panda.filter(panda_dsl::id.eq(panda_id)).first(conn)
+    panda_dsl::panda.filter(panda_dsl::id.eq_any(panda_ids)).load(conn)
+}
+
+pub fn get_panda_by_owner_utxo(owner_tx_id: i64, owner_output_idx: i64, conn: &PgConnection) -> Result<Option<DbPanda>, DieselError> {
+    use self::schema::panda::dsl as panda_dsl;
+    panda_dsl::panda.filter(
+        panda_dsl::owner_tx.eq(owner_tx_id)
+            .and(panda_dsl::owner_tx_idx.eq(owner_output_idx))
+    ).first::<DbPanda>(conn).optional()
 }
 
 #[cfg(test)]
@@ -106,7 +114,7 @@ mod tests {
         for i in 0..32 {
             let genes_expected = [i; 48];
             let id = insert_panda_from_genes(&1, &1, &0, &genes_expected, &connection).unwrap();
-            let db_panda = get_panda_by_id(&id, &connection).unwrap();
+            let db_panda = get_pandas_by_ids(vec![id], &connection).unwrap()[0];
             let genes_actual = db_panda.genes();
             assert_eq!(&genes_expected[..], &genes_actual[..]);
         }

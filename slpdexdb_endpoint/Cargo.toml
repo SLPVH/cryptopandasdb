@@ -7,7 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cashcontracts = {"git"="https://github.com/slpdex/cashcontracts-rs"}
+cryptopandas_base = {"path"="../cryptopandas_base"}
+cashcontracts = { git = "https://github.com/slpdex/cashcontracts-rs" }
 slpdexdb_base = {"path"="../slpdexdb_base"}
 slpdexdb_db = {"path"="../slpdexdb_db"}
 slpdexdb_node = {"path"="../slpdexdb_node"}

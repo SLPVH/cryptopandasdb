@@ -38,8 +38,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let port = std::env::var("PORT").unwrap_or("7501".to_string());
     actix::System::run(move || {
-        let resync_addr = SyncArbiter::start(1, || {
-            ResyncActor::new(connect_db(), SLPDEXConfig::default())
+        let secret = hex::decode(std::env::var("SECRET").unwrap()).unwrap();
+        let resync_addr = SyncArbiter::start(1, move || {
+            ResyncActor::new(connect_db(), SLPDEXConfig::default(), secret.clone())
         });
         let db_addr = actors::DbActor::create().unwrap();
         let db_addr = slpdexdb_node::DbActor::start(slpdexdb_node::DbActor {
@@ -48,7 +49,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
         let tx_addr = TxActor::start_with(Arc::new(Mutex::new(connect_db())), SLPDEXConfig::default(), resync_addr);
         let peers_addr = PeersActor::start(PeersActor::new(tx_addr.clone(), db_addr));
-        let socket_addr = net::SocketAddr::from_str("100.1.209.114:8333").unwrap();
+        //let socket_addr = net::SocketAddr::from_str("147.135.131.25:8333").unwrap();
+        //let socket_addr = net::SocketAddr::from_str("100.1.209.114:8333").unwrap();
+        let socket_addr = net::SocketAddr::from_str("137.74.30.99:8333").unwrap();
 
         Arbiter::spawn(
             peers_addr.send(ConnectToPeer { socket_addr })

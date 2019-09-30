@@ -61,6 +61,8 @@ pub mod token_result {
         pub token_stats: TokenStats,
         #[serde(rename = "tokenDetails")]
         pub token_details: TokenDetails,
+        #[serde(rename = "nftParentId")]
+        pub nft_parent_id: Option<String>,
     }
 
     #[derive(Deserialize, Debug)]

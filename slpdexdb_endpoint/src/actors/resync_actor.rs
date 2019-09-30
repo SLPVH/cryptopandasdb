@@ -2,16 +2,39 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::sync::Arc;
 use std::collections::HashSet;
 use actix::prelude::*;
-use cashcontracts::Address;
+use cashcontracts::{Address, tx_hex_to_hash};
 use slpdexdb_base::{Error, SLPDEXConfig};
-use slpdexdb_db::{Db, TxSource, TokenSource, UpdateSubject, UpdateSubjectType, UpdateHistory, TxHistory, Token, OutputType, Confirmedness};
-use crate::msg::{ResyncAddress, ProcessTransactions, NewTransactions};
+use slpdexdb_db::tx_hash_from_slice;
+use slpdexdb_db::{Db, TxSource, TokenSource, UpdateSubject, UpdateSubjectType, UpdateHistory,
+                  TxHistory, TxFilter, Token, OutputType, Confirmedness, TxType, panda_tools};
+use crate::msg::{ResyncAddress, ProcessTransactions, NewTransactions, ProcessBlock};
+use cryptopandas_base::genomics::{create_seed, mix_genes};
+use std::collections::HashMap;
 
 
 fn _resync(db: &Db, config: &SLPDEXConfig) -> Result<(), Error> {
-    _resync_tokens(db)?;
-    _resync_trade_offers(db, config, true)?;
-    _resync_trade_offers(db, config, false)?;
+    _init_panda_token(db, config)?;
+    //_resync_tokens(db)?;
+    //_resync_trade_offers(db, config, true)?;
+    //_resync_trade_offers(db, config, false)?;
+    Ok(())
+}
+
+fn _init_panda_token(db: &Db, config: &SLPDEXConfig) -> Result<(), Error> {
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    let token_source = TokenSource::new();
+    let tx_source = TxSource::new();
+    let token_hash = tx_hex_to_hash("16668131b2563dd32ef7b098056fd696b010233f66bcab5cc22bdf2b2a60f294").unwrap();
+    let token_entries = token_source.request_tokens(&[TxFilter::TokenId(token_hash.clone())])?;
+    let tokens = token_entries.into_iter()
+        .filter_map(|token_entry| {
+            Token::from_entry(token_entry).map_err(|err| eprintln!("token error: {}", err)).ok()
+        })
+        .collect::<Vec<_>>();
+    let tx_entries = tx_source.request_txs(&[TxFilter::TxHash(token_hash)], config, Confirmedness::Confirmed)?;
+    let history = TxHistory::from_entries(&tx_entries, timestamp as i64, config);
+    db.add_tokens(&tokens)?;
+    db.add_tx_history(&history)?;
     Ok(())
 }
 
@@ -25,7 +48,8 @@ fn _resync_tokens(db: &Db) -> Result<(), Error> {
             is_confirmed: true,
         };
         let last_update = db.last_update(subject.clone())?
-                .unwrap_or(UpdateHistory::initial(subject));
+            .unwrap_or(UpdateHistory::initial(subject));
+        println!("last update: {:?}", last_update);
         let token_entries = token_source.request_tokens(&last_update.next_filters())?;
         let tokens = token_entries.into_iter()
             .filter_map(|token_entry| {
@@ -33,6 +57,7 @@ fn _resync_tokens(db: &Db) -> Result<(), Error> {
             })
             .collect::<Vec<_>>();
         if tokens.len() == 0 {
+            db.add_update_history(&UpdateHistory::from_tokens(&tokens, current_height))?;
             break
         }
         for token in tokens.iter() {
@@ -104,18 +129,19 @@ fn _resync_address(db: &Db, config: &SLPDEXConfig, address: &Address, is_confirm
             break
         }
     }
-    db.update_utxo_set(&address)?;
+    db.update_utxo_set(address)?;
     Ok(())
 }
 
 pub struct ResyncActor {
     db: Db,
     config: SLPDEXConfig,
+    secret: Vec<u8>,
 }
 
 impl ResyncActor {
-    pub fn new(db: Db, config: SLPDEXConfig) -> Self {
-        ResyncActor { db, config }
+    pub fn new(db: Db, config: SLPDEXConfig, secret: Vec<u8>) -> Self {
+        ResyncActor { db, config, secret }
     }
 }
 
@@ -163,11 +189,25 @@ impl Handler<ProcessTransactions> for ResyncActor {
         let relevant_addresses = addresses.into_iter()
             .filter(|address| subscribers_addresses.contains_key(address))
             .collect::<HashSet<_>>();
-        if history.trade_offers.len() == 0 && relevant_addresses.len() == 0 {
+        if history.txs.iter().filter(|tx| match tx.tx_type {
+                TxType::SLP {..} => true,
+                TxType::Default => false,
+            }).count() == 0 &&
+            relevant_addresses.len() == 0 {
             return Ok(())
         }
         history.validate_slp(&tx_source, &*db, &msg.config)?;
+        if history.txs.iter().filter(|tx| match tx.tx_type {
+            TxType::SLP {..} => true,
+            TxType::Default => false,
+        }).count() == 0 &&
+            relevant_addresses.len() == 0 {
+            return Ok(())
+        }
         db.add_tx_history(&history)?;
+        for tx in history.txs.iter() {
+            println!("{}", tx);
+        }
         println!("txs valid.");
         let new_transactions = NewTransactions {
             now: timestamp,
@@ -178,6 +218,46 @@ impl Handler<ProcessTransactions> for ResyncActor {
         };
         for broadcast in msg.broadcasts.iter() {
             broadcast.do_send(new_transactions.clone()).unwrap();  // TODO: handle error
+        }
+        Ok(())
+    }
+}
+
+impl Handler<ProcessBlock> for ResyncActor {
+    type Result = Result<(), Error>;
+
+    fn handle(&mut self, msg: ProcessBlock, _ctx: &mut Self::Context) -> Self::Result {
+        let db = msg.db.lock().unwrap();
+        let tx_set = msg.tx_hashes.into_iter().collect::<HashSet<_>>();
+        let pending_pnd = db.pending_pnd()?;
+        let mut born_pnds = Vec::new();
+        for (pnd, tx) in pending_pnd {
+            let hash = tx_hash_from_slice(&tx.hash);
+            if tx_set.contains(&hash) {
+                born_pnds.push((pnd, tx, hash));
+            }
+        }
+        let block_hash = msg.header.hash();
+        let pandas = panda_tools::get_pandas_by_ids(
+            born_pnds.iter()
+                .flat_map(|(pnd, _, _)| vec![pnd.father, pnd.mother])
+                .collect::<Vec<_>>(),
+            db.connection(),
+        )?;
+        let pandas = pandas.into_iter()
+            .map(|panda| (panda.id, panda))
+            .collect::<HashMap<_, _>>();
+        for (pnd, tx, tx_hash) in born_pnds {
+            let seed = create_seed(&block_hash, &tx_hash);
+            let father = &pandas[&pnd.father];
+            let mother = &pandas[&pnd.mother];
+            let mut father_genes = [0; 48];
+            father_genes.copy_from_slice(&father.genes);
+            let mut mother_genes = [0; 48];
+            mother_genes.copy_from_slice(&mother.genes);
+            let new_genes = mix_genes(father_genes, mother_genes, seed);
+
+
         }
         Ok(())
     }

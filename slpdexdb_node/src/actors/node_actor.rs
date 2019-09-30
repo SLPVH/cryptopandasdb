@@ -5,12 +5,13 @@ use tokio_codec::FramedRead;
 use tokio_io::AsyncRead;
 use std::io;
 use std::sync::Arc;
+use std::net::SocketAddr;
 
 use slpdexdb_base::Error;
 
 use crate::codec::MessageCodec;
 use crate::message::NodeMessage;
-use crate::messages::{VersionMessage, VerackMessage, InvMessage, HeadersMessage, TxMessage};
+use crate::messages::{VersionMessage, VerackMessage, InvMessage, HeadersMessage, TxMessage, BlockMessage};
 use crate::message_packet::MessagePacket;
 use crate::actors::{VersionActor, InvActor, BlockHeaderActor};
 use crate::msg::{Subscribe, HandshakeSuccess};
@@ -37,11 +38,14 @@ pub struct NodeActor {
     subscribers_headers: Vec<Recipient<IncomingMsg<HeadersMessage>>>,
     subscribers_tx: Vec<Recipient<IncomingMsg<TxMessage>>>,
     subscribers_handshake: Vec<Recipient<HandshakeSuccess>>,
+    subscribers_block: Vec<Recipient<IncomingMsg<BlockMessage>>>,
 }
 
 impl NodeActor {
     pub fn create_from_stream_db(stream: TcpStream, db_actor: Addr<DbActor>) -> Addr<Self> {
         let local_addr = stream.local_addr().unwrap(); // TODO: handle error
+        //println!("local addr {}", local_addr);
+        //let local_addr = SocketAddr::new("185.220.70.238".parse().unwrap(), 8333);
         let peer_addr = stream.peer_addr().unwrap(); // TODO: handle error
         let addr = NodeActor::create(|ctx| {
             let (r, w) = stream.split();
@@ -58,6 +62,7 @@ impl NodeActor {
                 subscribers_verack: Vec::new(),
                 subscribers_headers: Vec::new(),
                 subscribers_tx: Vec::new(),
+                subscribers_block: Vec::new(),
             }
         });
         InvActor::start(InvActor { node: addr.clone() });
@@ -96,6 +101,10 @@ impl StreamHandler<MessagePacket, io::Error> for NodeActor {
             b"headers" => Self::_broadcast(msg, &self.subscribers_headers),
             b"verack" => Self::_broadcast(msg, &self.subscribers_verack),
             b"tx" => Self::_broadcast(msg, &self.subscribers_tx),
+            b"block" => {
+                println!("block msg: {}", msg);
+                Self::_broadcast(msg, &self.subscribers_block)
+            },
             _ => {
             },
         }
@@ -113,6 +122,7 @@ impl Handler<Subscribe> for NodeActor {
             Subscribe::HandshakeSuccess(recipient) => self.subscribers_handshake.push(recipient),
             Subscribe::Headers(recipient) => self.subscribers_headers.push(recipient),
             Subscribe::Tx(recipient) => self.subscribers_tx.push(recipient),
+            Subscribe::Block(recipient) => self.subscribers_block.push(recipient),
         }
     }
 }
@@ -132,6 +142,6 @@ impl Handler<OutgoingMsg> for NodeActor {
     type Result = ();
 
     fn handle(&mut self, msg: OutgoingMsg, _: &mut Self::Context) -> Self::Result {
-        self.framed.write(msg.0)
+        self.framed.write(msg.0);
     }
 }

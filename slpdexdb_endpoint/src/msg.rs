@@ -2,7 +2,7 @@ use actix::prelude::*;
 use cashcontracts::Address;
 use slpdexdb_base::Error;
 use std::net;
-use slpdexdb_base::SLPDEXConfig;
+use slpdexdb_base::{SLPDEXConfig, BlockHeader};
 use slpdexdb_db::{Db, Utxo, SpentUtxo, TxDelta, TradeOfferFilter, TradeOffer, TxHistory};
 use std::collections::{HashSet, HashMap};
 use std::sync::{Arc, Mutex};
@@ -135,5 +135,18 @@ pub struct ProcessTransactions {
 }
 
 impl Message for ProcessTransactions {
+    type Result = Result<(), Error>;
+}
+
+pub struct ProcessBlock {
+    pub header: BlockHeader,
+    pub tx_hashes: Vec<[u8; 32]>,
+    pub db: Arc<Mutex<Db>>,
+    pub config: SLPDEXConfig,
+    pub subscribers: Arc<Mutex<TxSubscribers>>,
+    pub broadcasts: Vec<Recipient<NewTransactions>>,
+}
+
+impl Message for ProcessBlock {
     type Result = Result<(), Error>;
 }

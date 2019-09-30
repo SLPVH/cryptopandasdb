@@ -4,7 +4,9 @@ mod headers_message;
 mod inv_message;
 mod tx_message;
 mod version_message;
+mod block_message;
 
+pub use block_message::*;
 pub use get_data_message::*;
 pub use get_headers_message::*;
 pub use headers_message::*;

@@ -6,7 +6,7 @@ use cashcontracts::{Address, AddressType};
 use slpdexdb_base::{BlockHeader, GENESIS};
 use slpdexdb_base::SLPAmount;
 use slpdexdb_base::convert_numeric::{rational_to_pg_numeric, pg_numeric_to_rational};
-use crate::tx_history::{TxHistory, TxType, TradeOffer};
+use crate::tx_history::{TxHistory, TxType, TradeOffer, TokenType};
 use crate::update_history::{UpdateHistory, UpdateSubject};
 use crate::token::Token;
 use crate::{models, schema::*};
@@ -25,6 +25,10 @@ pub struct Db {
 impl Db {
     pub fn new(connection: PgConnection) -> Self {
         Db { connection }
+    }
+
+    pub fn connection(&self) -> &PgConnection {
+        &self.connection
     }
 
     pub fn add_headers(&self, headers: &[BlockHeader]) -> QueryResult<()> {
@@ -123,7 +127,7 @@ impl Db {
                 .select((token::hash, token::id))
                 .filter(token::hash.eq_any(token_hashes))
                 .load(&self.connection)?;
-            let token_ids = tokens.into_iter().collect::<HashMap<_, _>>();
+            let token_ids: HashMap<Vec<u8>, i32> = tokens.into_iter().collect::<HashMap<_, _>>();
             let tx_ids = diesel::insert_into(tx::table)
                 .values(&new_txs)
                 .on_conflict(tx::hash)
@@ -136,12 +140,12 @@ impl Db {
                 .iter()
                 .zip(tx_ids.iter().cloned())
                 .filter_map(|(tx, id)| {
-                    match &tx.tx_type {
-                        TxType::SLP {token_hash, token_type, slp_type} => Some(models::SlpTx {
+                    match tx.tx_type {
+                        TxType::SLP {ref token_hash, token_type, ref slp_type} => Some(models::SlpTx {
                             tx: id,
                             slp_type: String::from_utf8_lossy(slp_type.to_bytes()).to_string(),
-                            token: *token_ids.get(token_hash.as_ref())?,
-                            version: *token_type,
+                            token: *token_ids.get(&token_hash.to_vec())?,
+                            version: token_type as i32,
                         }),
                         TxType::Default => None,
                     }
@@ -209,6 +213,21 @@ impl Db {
                 .values(&new_trade_offers)
                 .on_conflict_do_nothing()
                 .execute(&self.connection)?;
+            let new_pending_pnd1_txs = tx_history.pnd_txs
+                .iter()
+                .map(|(tx_idx, pnd_tx)| {
+                    models::PND1Tx {
+                        name: pnd_tx.name.clone(),
+                        tx: tx_ids[*tx_idx],
+                        father: pnd_tx.father_id,
+                        mother: pnd_tx.mother_id,
+                    }
+                })
+                .collect::<Vec<_>>();
+            diesel::insert_into(pending_pnd1_tx::table)
+                .values(&new_pending_pnd1_txs)
+                .on_conflict_do_nothing()
+                .execute(&self.connection)?;
             Ok(())
         })
     }
@@ -258,6 +277,7 @@ impl Db {
     }
 
     pub fn add_tokens(&self, tokens: &[Token]) -> QueryResult<()> {
+        println!("{:?}", tokens);
         diesel::insert_into(token::table)
             .values(&tokens.iter()
                 .map(|token| {
@@ -265,7 +285,7 @@ impl Db {
                         hash: token.hash.to_vec(),
                         decimals: token.decimals,
                         timestamp: token.timestamp,
-                        version_type: token.version_type,
+                        version_type: token.version_type as i16,
                         document_uri: token.document_uri.clone().map(pg_safe_string),
                         symbol: token.symbol.clone().map(pg_safe_string),
                         name: token.name.clone().map(pg_safe_string),
@@ -278,7 +298,11 @@ impl Db {
                 .collect::<Vec<_>>()
             )
             .on_conflict(token::hash)
-            .do_update().set(token::current_supply.eq(token::current_supply))
+            .do_update().set((
+                token::current_supply.eq(token::current_supply),
+                token::parent_token.eq(token::parent_token),
+                token::parent_token_hash.eq(token::parent_token_hash),
+            ))
             .execute(&self.connection)?;
         Ok(())
     }
@@ -288,12 +312,13 @@ impl Db {
             .filter(token::hash.eq(token_hash.to_vec()))
             .first::<models::Token>(&self.connection)
             .optional()?;
-        Ok(token.map(|token| {
-            Token {
+        Ok(token.and_then(|token| {
+            Some(Token {
                 hash: tx_hash_from_slice(&token.hash),
+                parent_hash: token.parent_token_hash.as_ref().map(|h| tx_hash_from_slice(h)),
                 decimals: token.decimals,
                 timestamp: token.timestamp,
-                version_type: token.version_type,
+                version_type: num::FromPrimitive::from_u16(token.version_type as u16)?,
                 document_uri: token.document_uri,
                 symbol: token.symbol,
                 name: token.name,
@@ -303,7 +328,7 @@ impl Db {
                 current_supply: SLPAmount::from_numeric_decimals(&token.current_supply,
                                                                  token.decimals as u32),
                 block_created_height: token.block_created_height,
-            }
+            })
         }))
     }
 
@@ -552,6 +577,20 @@ impl Db {
             .collect())
     }
 
+    pub fn slp_txs(&self, tx_hashes: impl Iterator<Item=[u8; 32]>)
+               -> QueryResult<HashMap<[u8; 32], (models::Tx, models::SlpTx, models::Token)>> {
+        Ok(tx::table
+            .inner_join(slp_tx::table)
+            .inner_join(token::table.on(slp_tx::token.eq(token::id)))
+            .filter(tx::hash.eq_any(
+                tx_hashes.map(|tx_hash| tx_hash.to_vec()).collect::<Vec<_>>()
+            ))
+            .load::<(models::Tx, models::SlpTx, models::Token)>(&self.connection)?
+            .into_iter()
+            .map(|(tx, slp_tx, token)| (tx_hash_from_slice(&tx.hash), (tx, slp_tx, token)))
+            .collect())
+    }
+
     pub fn tx_outputs(&self, tx_hashes: impl Iterator<Item=[u8; 32]>)
                -> QueryResult<HashMap<([u8; 32], i32), models::TxOutput>> {
         Ok(tx_output::table
@@ -615,5 +654,28 @@ impl Db {
             )
             .execute(&self.connection)?;
         Ok(())
+    }
+
+    pub fn pending_pnd(&self) -> QueryResult<Vec<(models::PND1Tx, models::Tx)>> {
+        pending_pnd1_tx::table
+            .inner_join(tx::table)
+            .load(&self.connection)
+    }
+
+    pub fn get_some_pandaop_utxo(&self) -> QueryResult<Option<models::PandaopUtxo>> {
+        let utxo = pandaop_utxo::table
+            .limit(1)
+            .get_result::<models::PandaopUtxo>(&self.connection)
+            .optional()?;
+        match utxo {
+            Some(utxo) => {
+                diesel::delete(pandaop_utxo::table)
+                    .filter(pandaop_utxo::tx_hash.eq(utxo.tx_hash.clone()))
+                    .filter(pandaop_utxo::vout.eq(utxo.vout))
+                    .execute(&self.connection)?;
+                Ok(Some(utxo))
+            },
+            None => Ok(None)
+        }
     }
 }

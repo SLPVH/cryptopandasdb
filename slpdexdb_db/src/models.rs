@@ -4,6 +4,7 @@ use diesel::data_types::PgNumeric;
 use diesel::sql_types::{Binary, BigInt, Numeric, Integer, Nullable};
 use panda_base::traits::*;
 
+#[derive(Debug)]
 #[derive(Queryable)]
 #[derive(Insertable)]
 #[table_name="blocks"]
@@ -18,6 +19,7 @@ pub struct Block {
     pub nonce: i64,
 }
 
+#[derive(Debug)]
 #[derive(Queryable)]
 pub struct Token {
     pub id:                   i32,    // SERIAL PRIMARY KEY,
@@ -32,6 +34,8 @@ pub struct Token {
     pub initial_supply:       PgNumeric, // NUMERIC(52, 26) NOT NULL,
     pub current_supply:       PgNumeric, // NUMERIC(52, 26) NOT NULL,
     pub block_created_height: i32,    // INT NOT NULL
+    pub parent_token:         Option<i32>, // "parent_token" INT REFERENCES token (id) ON DELETE CASCADE
+    pub parent_token_hash:    Option<Vec<u8>>, // "parent_token" BYTEA REFERENCES token (id) ON DELETE CASCADE
 }
 
 #[derive(Insertable)]
@@ -50,6 +54,7 @@ pub struct NewToken {
     pub block_created_height: i32,    // INT NOT NULL
 }
 
+#[derive(Debug)]
 #[derive(Queryable)]
 pub struct Tx {
     pub id:        i64, // BIGSERIAL PRIMARY KEY,
@@ -68,6 +73,7 @@ pub struct NewTx {
     pub tx_type:   i32, // INT NOT NULL
 }
 
+#[derive(Debug)]
 #[derive(Queryable)]
 #[derive(Insertable)]
 #[table_name="slp_tx"]
@@ -99,6 +105,24 @@ pub struct TxInput {
     pub output_tx:  Vec<u8>, // BIGINT,  -- can be null
     pub output_idx: i32, // INT,
     pub address:    Option<Vec<u8>>, // BYTEA
+}
+
+#[derive(Queryable)]
+#[derive(Insertable)]
+#[table_name="pending_pnd1_tx"]
+pub struct PND1Tx {
+    pub tx:     i64, // BIGINT NOT NULL PRIMARY KEY REFERENCES tx (id) ON DELETE CASCADE,
+    pub father: i64, // BIGINT NOT NULL REFERENCES panda (id) ON DELETE CASCADE,
+    pub mother: i64, // BIGINT NOT NULL REFERENCES panda (id) ON DELETE CASCADE,
+    pub name: String, // TEXT NOT NULL
+}
+
+#[derive(Queryable)]
+#[derive(Insertable)]
+#[table_name="pandaop_utxo"]
+pub struct PandaopUtxo {
+    pub tx_hash: Vec<u8>,
+    pub vout: i32,
 }
 
 #[derive(Queryable)]
