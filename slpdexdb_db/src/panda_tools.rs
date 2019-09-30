@@ -117,6 +117,32 @@ pub fn get_panda_by_token_id(token_id: &[u8], conn:&PgConnection) -> Result<DbPa
         .first::<DbPanda>(conn)
 }
 
+pub fn get_full_panda_by_token_id(token_id: &[u8], conn:&PgConnection) -> Result<DbPandaFull, DieselError> {
+    use self::schema::{panda::dsl as panda_dsl, tx::dsl as tx_dsl, tx_output::dsl as output_dsl};
+
+    output_dsl::tx_output
+        .inner_join(tx_dsl::tx)
+        .inner_join(panda_dsl::panda.on(
+            panda_dsl::owner_tx.eq(output_dsl::tx).and(
+                panda_dsl::owner_tx_idx.eq(output_dsl::idx))
+        ))
+        .filter(tx_dsl::hash.eq(token_id))
+        .select((
+            tx_dsl::hash, 
+            output_dsl::address, 
+            panda_dsl::physique, 
+            panda_dsl::pattern, 
+            panda_dsl::eye_color, 
+            panda_dsl::eye_shape, 
+            panda_dsl::base_color, 
+            panda_dsl::highlight_color, 
+            panda_dsl::accent_color, 
+            panda_dsl::wild_element, 
+            panda_dsl::mouth, 
+            panda_dsl::genes))
+        .first::<DbPandaFull>(conn)
+}
+
 pub fn get_panda_by_addr(address: &[u8], conn:&PgConnection) -> Result<Vec<DbPanda>, DieselError> {
     use self::schema::{panda::dsl as panda_dsl, tx_output::dsl as output_dsl};
 

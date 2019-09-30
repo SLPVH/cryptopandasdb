@@ -288,6 +288,22 @@ pub struct DbPanda {
     pub genes: Vec<u8>
 }
 
+#[derive(Queryable)]
+pub struct DbPandaFull {
+    pub hash: Vec<u8>,
+    pub address: Option<Vec<u8>>,
+    pub physique: PhysiqueTrait,
+    pub pattern: PatternTrait,
+    pub eye_color: EyeColorTrait,
+    pub eye_shape: EyeShapeTrait,
+    pub base_color: BaseColorTrait,
+    pub highlight_color: HighlightColorTrait,
+    pub accent_color: AccentColorTrait,
+    pub wild_element: WildElementTrait,
+    pub mouth: MouthTrait,
+    pub genes: Vec<u8>
+}
+
 impl DbPanda {
     pub fn genes(&self) -> [u8; 48] {
         let mut genes: [u8; 48] = [0; 48];
