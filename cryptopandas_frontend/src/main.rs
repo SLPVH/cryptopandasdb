@@ -163,7 +163,7 @@ fn pandas_by_address(
 #[derive(Deserialize)]
 struct SelectionQuery {
     father_id: String,
-    address: String
+    address: String,
 }
 
 /// Get Panda by Address
@@ -280,15 +280,9 @@ fn main() -> io::Result<()> {
             .service(
                 web::resource("/pandas/{address}").route(web::get().to_async(pandas_by_address)),
             )
-            .service(
-                web::resource("/selection").route(web::get().to_async(pandas_by_address)),
-            )
-            .service(
-                web::resource("/breeders").route(web::get().to_async(breeders)),
-            )
-            .service(
-                web::resource("/selection").route(web::get().to_async(selection)),
-            )
+            .service(web::resource("/selection").route(web::get().to_async(pandas_by_address)))
+            .service(web::resource("/breeders").route(web::get().to_async(breeders)))
+            .service(web::resource("/selection").route(web::get().to_async(selection)))
     })
     .bind("127.0.0.1:8080")?
     .run()
