@@ -8,6 +8,12 @@ edition = "2018"
 
 [dependencies]
 actix-web = "1.0.5"
+cashcontracts = { git = "https://github.com/slpdex/cashcontracts-rs" }
+diesel = { version = "1.4.2", features = ["postgres", "chrono", "r2d2"] }
+dex_db = { package = "slpdexdb_db", path="../slpdexdb_db"}
 handlebars = "2.0.2"
+serde = { version = "1.0.97", features = ["derive"] }
 serde_json = "1.0.40"
 panda-base = { package = "cryptopandas_base", path = "../cryptopandas_base" }
+futures = "*"
+hex = "*"
