@@ -225,6 +225,9 @@ fn main() -> io::Result<()> {
             .service(
                 web::resource("/pandas/{address}").route(web::get().to_async(pandas_by_address)),
             )
+            .service(
+                web::resource("/breeders").route(web::get().to_async(breeders)),
+            )
     })
     .bind("127.0.0.1:8080")?
     .run()
