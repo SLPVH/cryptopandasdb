@@ -1,11 +1,11 @@
-use std::convert::TryInto;
 use bitvec::prelude::*;
+use std::convert::TryInto;
 
 pub fn pack_genes(genes: &[u8; 48]) -> [u8; 32] {
     let gene_bv = BitVec::<BigEndian, u8>::from_slice(&genes[..]);
     let mut bv = BitVec::<BigEndian, u8>::with_capacity(32);
     for i in 0..48 {
-        let b_slice = &gene_bv[3 + 8 * i..8*(i + 1)][..];
+        let b_slice = &gene_bv[3 + 8 * i..8 * (i + 1)][..];
         bv.extend(b_slice);
     }
     let padding = BitVec::<BigEndian, u8>::from_slice(&[0, 0][..]);
@@ -17,7 +17,7 @@ pub fn unpack_genes(genes: &[u8; 32]) -> [u8; 48] {
     let packed_bv = BitVec::<BigEndian, u8>::from_slice(&genes[..]);
     let mut unpacked_bv = BitVec::<BigEndian, u8>::with_capacity(48);
     for i in 0..48 {
-        let b_slice = &packed_bv[5 * i..5*(i+1)][..];
+        let b_slice = &packed_bv[5 * i..5 * (i + 1)][..];
         unpacked_bv.push(false);
         unpacked_bv.push(false);
         unpacked_bv.push(false);

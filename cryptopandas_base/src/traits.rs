@@ -1,5 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 
+use bitvec::prelude::*;
 use diesel_derive_enum::DbEnum;
 use num_enum::*;
 use serde::{Deserialize, Serialize};
@@ -455,6 +456,25 @@ impl PandaAttributes {
             mouth: MouthTrait::from_gene(genes[32])?,
         })
     }
+
+    pub fn to_base32(&self) -> String {
+        let alph = base32::Alphabet::RFC4648 { padding: false };
+        let trait_slice: [u8; 9] = [
+            self.physique.into(),
+            self.pattern.into(),
+            self.eye_color.into(),
+            self.eye_shape.into(),
+            self.base_color.into(),
+            self.highlight_color.into(),
+            self.accent_color.into(),
+            self.wild_element.into(),
+            self.mouth.into(),
+        ];
+        trait_slice
+            .iter()
+            .map(|trait_int| base32::encode(alph, &[*trait_int]).chars().next().unwrap())
+            .collect()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -537,6 +557,22 @@ impl PandaTraits {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn base32() {
+        let zero_panda_expected = PandaAttributes {
+            physique: PhysiqueTrait::Standard,
+            pattern: PatternTrait::PandaI,
+            eye_color: EyeColorTrait::Thundergrey,
+            eye_shape: EyeShapeTrait::Standard,
+            base_color: BaseColorTrait::Shadowgrey,
+            highlight_color: HighlightColorTrait::Cyborg,
+            accent_color: AccentColorTrait::Belleblue,
+            wild_element: WildElementTrait::Standard,
+            mouth: MouthTrait::Standard,
+        };
+        assert_eq!("AAAAAAAAA".to_string(), zero_panda_expected.to_base32())
+    }
 
     #[test]
     fn wild_elements() {
@@ -664,8 +700,7 @@ mod tests {
         let public_genes = panda_traits_expected.to_byte_public_genes();
         // Extend short genes
         let genes_extended = [0; 12];
-        let genes_full_vec = &[&public_genes[..], &genes_extended[..]]
-            .concat();
+        let genes_full_vec = &[&public_genes[..], &genes_extended[..]].concat();
         let mut genes_full = [0; 48];
         genes_full.copy_from_slice(genes_full_vec);
         let panda_traits_actual = PandaTraits::from_genes(&genes_full).unwrap();
