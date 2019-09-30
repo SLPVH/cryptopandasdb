@@ -22,3 +22,14 @@ pub enum GetByAddressError {
     Serde(serde_json::Error),
     Handlebars,
 }
+
+#[derive(Debug)]
+pub enum SelectionError {
+    Diesel(DieselError),
+    Connection(String), // TODO: This is string because Diesel pub use
+    Address(AddressError),
+    Hex(FromHexError),
+    InvalidGene,
+    Serde(serde_json::Error),
+    Handlebars,
+}

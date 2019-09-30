@@ -160,6 +160,61 @@ fn pandas_by_address(
     )
 }
 
+#[derive(Deserialize)]
+struct SelectionQuery {
+    father_id: String,
+    address: String
+}
+
+/// Get Panda by Address
+fn selection(
+    hb: web::Data<Handlebars>,
+    pool: web::Data<Pool>,
+    query: web::Query<SelectionQuery>,
+) -> impl Future<Item = HttpResponse, Error = Error> {
+    web::block(move || {
+        // Get connection
+        let conn: &PgConnection = &*pool
+            .get()
+            .map_err(|err| SelectionError::Connection(err.to_string()))?;
+
+        // Decode token id
+        let raw_token_id = hex::decode(&query.father_id).map_err(SelectionError::Hex)?;
+
+        // Decode address
+        let address =
+            Address::from_cash_addr(query.address.to_string()).map_err(SelectionError::Address)?;
+
+        // TODO: Validate it's an SLP address
+
+        // Grab panda from DB
+        let db_pandas =
+            get_full_panda_by_addr(address.bytes(), &conn).map_err(SelectionError::Diesel)?;
+
+        // Grab attributes
+        let attributes: Vec<PandaFrontEnd> = db_pandas
+            .into_iter()
+            .filter(|db_panda| db_panda.hash != raw_token_id)
+            .map(|db_panda| PandaFrontEnd::from(db_panda))
+            .collect();
+
+        // Convert to JSON
+        let data = serde_json::to_value(attributes).map_err(SelectionError::Serde)?;
+
+        // Render using handle bars
+        Ok(hb
+            .render("selection", &data)
+            .map_err(|err| SelectionError::Handlebars)?)
+    })
+    .then(
+        // TODO: Fine grained error matching
+        |res: Result<String, BlockingError<SelectionError>>| match res {
+            Ok(body) => Ok(HttpResponse::Ok().body(body)),
+            Err(_) => Ok(HttpResponse::NotFound().finish()),
+        },
+    )
+}
+
 /// Get Panda by Token ID
 fn panda_by_token_id(
     hb: web::Data<Handlebars>,
@@ -226,7 +281,13 @@ fn main() -> io::Result<()> {
                 web::resource("/pandas/{address}").route(web::get().to_async(pandas_by_address)),
             )
             .service(
+                web::resource("/selection").route(web::get().to_async(pandas_by_address)),
+            )
+            .service(
                 web::resource("/breeders").route(web::get().to_async(breeders)),
+            )
+            .service(
+                web::resource("/selection").route(web::get().to_async(selection)),
             )
     })
     .bind("127.0.0.1:8080")?
