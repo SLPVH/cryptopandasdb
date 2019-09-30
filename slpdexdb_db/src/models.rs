@@ -275,16 +275,6 @@ pub struct DbPanda {
     pub genesis_tx: i64,
     pub owner_tx: i64,
     pub owner_tx_idx: i32,
-    // TODO: Is this needed?
-    // pub physique: PhysiqueTrait,
-    // pub pattern: PatternTrait,
-    // pub eye_color: EyeColorTrait,
-    // pub eye_shape: EyeShapeTrait,
-    // pub base_color: BaseColorTrait,
-    // pub highlight_color: HighlightColorTrait,
-    // pub accent_color: AccentColorTrait,
-    // pub wild_element: WildElementTrait,
-    // pub mouth: MouthTrait,
     pub genes: Vec<u8>
 }
 

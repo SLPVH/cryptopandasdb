@@ -72,6 +72,50 @@ impl From<DbPandaFull> for PandaFrontEnd {
 }
 
 /// Get Panda by Address
+fn breeders(
+    hb: web::Data<Handlebars>,
+    pool: web::Data<Pool>,
+) -> impl Future<Item = HttpResponse, Error = Error> {
+    web::block(move || {
+        // Get connection
+        let conn: &PgConnection = &*pool
+            .get()
+            .map_err(|err| GetByAddressError::Connection(err.to_string()))?;
+
+        // Grab breeders
+        let breeders: Vec<String> = get_active_addresses(conn)
+            .map_err(GetByAddressError::Diesel)?
+            .into_iter()
+            .filter_map(|x| x)
+            .map(|pubkey_hash| {
+                Address::from_bytes_prefix(
+                    "simpleledger",
+                    AddressType::P2PKH,
+                    (&pubkey_hash[..]).try_into().unwrap(),
+                )
+                .cash_addr()
+                .to_string()
+            })
+            .collect();
+
+        // Convert to JSON
+        let data = serde_json::to_value(breeders).map_err(GetByAddressError::Serde)?;
+
+        // Render using handle bars
+        Ok(hb
+            .render("breeders", &data)
+            .map_err(|err| GetByAddressError::Handlebars)?)
+    })
+    .then(
+        // TODO: Fine grained error matching
+        |res: Result<String, BlockingError<GetByAddressError>>| match res {
+            Ok(body) => Ok(HttpResponse::Ok().body(body)),
+            Err(_) => Ok(HttpResponse::NotFound().finish()),
+        },
+    )
+}
+
+/// Get Panda by Address
 fn pandas_by_address(
     hb: web::Data<Handlebars>,
     pool: web::Data<Pool>,
@@ -104,7 +148,7 @@ fn pandas_by_address(
 
         // Render using handle bars
         Ok(hb
-            .render("panda", &data)
+            .render("pandas", &data)
             .map_err(|err| GetByAddressError::Handlebars)?)
     })
     .then(

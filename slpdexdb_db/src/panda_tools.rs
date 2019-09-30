@@ -187,6 +187,18 @@ pub fn get_full_panda_by_addr(address: &[u8], conn:&PgConnection) -> Result<Vec<
         .load::<DbPandaFull>(conn)
 }
 
+pub fn get_active_addresses(conn:&PgConnection) -> Result<Vec<Option<Vec<u8>>>, DieselError> {
+    use self::schema::{panda::dsl as panda_dsl, tx_output::dsl as output_dsl};
+
+    output_dsl::tx_output
+        .inner_join(panda_dsl::panda.on(
+            panda_dsl::owner_tx.eq(output_dsl::tx).and(
+                panda_dsl::owner_tx_idx.eq(output_dsl::idx))
+        ))
+        .select(output_dsl::address)
+        .load::<Option<Vec<u8>>>(conn)
+} 
+
 #[cfg(test)]
 mod tests {
     use super::*;
