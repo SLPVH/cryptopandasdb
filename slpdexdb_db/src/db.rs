@@ -127,7 +127,7 @@ impl Db {
                 .select((token::hash, token::id))
                 .filter(token::hash.eq_any(token_hashes))
                 .load(&self.connection)?;
-            let token_ids: HashMap<Vec<u8>, i32> = tokens.into_iter().collect::<HashMap<_, _>>();
+            let token_ids = tokens.into_iter().collect::<HashMap<_, _>>();
             let tx_ids = diesel::insert_into(tx::table)
                 .values(&new_txs)
                 .on_conflict(tx::hash)
@@ -140,12 +140,12 @@ impl Db {
                 .iter()
                 .zip(tx_ids.iter().cloned())
                 .filter_map(|(tx, id)| {
-                    match tx.tx_type {
-                        TxType::SLP {ref token_hash, token_type, ref slp_type} => Some(models::SlpTx {
+                    match &tx.tx_type {
+                        TxType::SLP {token_hash, token_type, slp_type} => Some(models::SlpTx {
                             tx: id,
                             slp_type: String::from_utf8_lossy(slp_type.to_bytes()).to_string(),
-                            token: *token_ids.get(&token_hash.to_vec())?,
-                            version: token_type as i32,
+                            token: *token_ids.get(&token_hash[..])?,
+                            version: *token_type,
                         }),
                         TxType::Default => None,
                     }
@@ -277,7 +277,6 @@ impl Db {
     }
 
     pub fn add_tokens(&self, tokens: &[Token]) -> QueryResult<()> {
-        println!("{:?}", tokens);
         diesel::insert_into(token::table)
             .values(&tokens.iter()
                 .map(|token| {

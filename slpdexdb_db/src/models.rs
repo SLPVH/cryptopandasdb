@@ -280,7 +280,7 @@ impl Block {
 pub struct NewPanda<'a> {
     pub genesis_tx: &'a i64,
     pub owner_tx: &'a i64,
-    pub owner_tx_idx: &'a i64,
+    pub owner_tx_idx: &'a i32,
     pub physique: &'a PhysiqueTrait,
     pub pattern: &'a PatternTrait,
     pub eye_color: &'a EyeColorTrait,
@@ -298,8 +298,14 @@ pub struct DbPanda {
     pub id: i64,
     pub genesis_tx: i64,
     pub owner_tx: i64,
-    pub owner_tx_idx: i64,
-    // TODO: Is this needed?
+    pub owner_tx_idx: i32,
+    pub genes: Vec<u8>
+}
+
+#[derive(Queryable)]
+pub struct DbPandaFull {
+    pub hash: Vec<u8>,
+    pub address: Option<Vec<u8>>,
     pub physique: PhysiqueTrait,
     pub pattern: PatternTrait,
     pub eye_color: EyeColorTrait,
