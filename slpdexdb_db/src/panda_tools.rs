@@ -201,15 +201,32 @@ pub fn get_active_addresses(conn:&PgConnection) -> Result<Vec<Option<Vec<u8>>>, 
 
 pub fn get_pandas_by_ids(panda_ids: Vec<i64>, conn: &PgConnection) -> Result<Vec<DbPanda>, DieselError> {
     use self::schema::panda::dsl as panda_dsl;
-    panda_dsl::panda.filter(panda_dsl::id.eq_any(panda_ids)).load(conn)
+    panda_dsl::panda
+        .filter(panda_dsl::id.eq_any(panda_ids))
+        .select((
+            panda_dsl::id,
+            panda_dsl::genesis_tx,
+            panda_dsl::owner_tx,
+            panda_dsl::owner_tx_idx,
+            panda_dsl::genes))
+        .load(conn)
 }
 
-pub fn get_panda_by_owner_utxo(owner_tx_id: i64, owner_output_idx: i64, conn: &PgConnection) -> Result<Option<DbPanda>, DieselError> {
+pub fn get_panda_by_owner_utxo(owner_tx_id: i64, owner_output_idx: i32, conn: &PgConnection) -> Result<Option<DbPanda>, DieselError> {
     use self::schema::panda::dsl as panda_dsl;
-    panda_dsl::panda.filter(
-        panda_dsl::owner_tx.eq(owner_tx_id)
-            .and(panda_dsl::owner_tx_idx.eq(owner_output_idx))
-    ).first::<DbPanda>(conn).optional()
+    panda_dsl::panda
+        .filter(
+            panda_dsl::owner_tx.eq(owner_tx_id)
+                .and(panda_dsl::owner_tx_idx.eq(owner_output_idx))
+        )
+        .select((
+            panda_dsl::id,
+            panda_dsl::genesis_tx,
+            panda_dsl::owner_tx,
+            panda_dsl::owner_tx_idx,
+            panda_dsl::genes))
+        .first::<DbPanda>(conn)
+        .optional()
 }
 
 #[cfg(test)]

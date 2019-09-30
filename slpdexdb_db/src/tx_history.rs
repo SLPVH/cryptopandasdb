@@ -480,13 +480,13 @@ impl TxHistory {
                             PNDError::MotherDoesntExist(format!("{}:{}", hex::encode(mother_hash), mother_output_idx))
                         ).into()
                     })?;
-                let father = get_panda_by_owner_utxo(father_tx.id, father_output_idx as i64, db.connection())?
+                let father = get_panda_by_owner_utxo(father_tx.id, father_output_idx as i32, db.connection())?
                     .ok_or_else(|| -> Error {
                         ErrorKind::InvalidPND(
                             PNDError::InvalidFatherUTXO(format!("{}:{}", hex::encode(father_hash), father_output_idx))
                         ).into()
                     })?;
-                let mother = get_panda_by_owner_utxo(mother_tx.id, mother_output_idx as i64, db.connection())?
+                let mother = get_panda_by_owner_utxo(mother_tx.id, mother_output_idx as i32, db.connection())?
                     .ok_or_else(|| -> Error {
                         ErrorKind::InvalidPND(
                             PNDError::InvalidFatherUTXO(format!("{}:{}", hex::encode(mother_hash), mother_output_idx))

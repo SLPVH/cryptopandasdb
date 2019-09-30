@@ -145,7 +145,7 @@ impl Db {
                             tx: id,
                             slp_type: String::from_utf8_lossy(slp_type.to_bytes()).to_string(),
                             token: *token_ids.get(&token_hash[..])?,
-                            version: *token_type,
+                            version: *token_type as i32,
                         }),
                         TxType::Default => None,
                     }
