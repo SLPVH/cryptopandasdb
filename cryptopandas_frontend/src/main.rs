@@ -2,14 +2,16 @@
 extern crate actix_web;
 #[macro_use]
 extern crate serde_json;
+#[macro_use]
+extern crate serde;
 
 pub mod errors;
 
-use std::io;
+use std::{convert::TryInto, io};
 
 use actix_web::{error::BlockingError, web, Error};
 use actix_web::{App, HttpResponse, HttpServer};
-use cashcontracts::Address;
+use cashcontracts::{Address, AddressType};
 use diesel::{
     prelude::*,
     r2d2::{self, ConnectionManager},
@@ -19,7 +21,7 @@ use handlebars::Handlebars;
 use panda_base::traits::*;
 
 use crate::errors::*;
-use dex_db::panda_tools::*;
+use dex_db::{models::DbPandaFull, panda_tools::*};
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -31,6 +33,42 @@ fn index(hb: web::Data<Handlebars>) -> HttpResponse {
     let body = hb.render("index", &data).unwrap();
 
     HttpResponse::Ok().body(body)
+}
+
+#[derive(Serialize)]
+struct PandaFrontEnd {
+    pub token_id: String,
+    pub owner_address: String,
+    pub physique: PhysiqueTrait,
+    pub pattern: PatternTrait,
+    pub eye_color: EyeColorTrait,
+    pub eye_shape: EyeShapeTrait,
+    pub base_color: BaseColorTrait,
+    pub highlight_color: HighlightColorTrait,
+    pub accent_color: AccentColorTrait,
+    pub wild_element: WildElementTrait,
+}
+
+impl From<DbPandaFull> for PandaFrontEnd {
+    fn from(db_panda: DbPandaFull) -> PandaFrontEnd {
+        let address = Address::from_bytes_prefix(
+            "simpleledger",
+            AddressType::P2PKH,
+            (&db_panda.hash[..]).try_into().unwrap(),
+        );
+        PandaFrontEnd {
+            token_id: hex::encode(db_panda.hash),
+            owner_address: address.cash_addr().to_string(),
+            physique: db_panda.physique,
+            pattern: db_panda.pattern,
+            eye_color: db_panda.eye_color,
+            eye_shape: db_panda.eye_shape,
+            base_color: db_panda.base_color,
+            highlight_color: db_panda.highlight_color,
+            accent_color: db_panda.accent_color,
+            wild_element: db_panda.wild_element,
+        }
+    }
 }
 
 /// Get Panda by Address
@@ -46,18 +84,19 @@ fn pandas_by_address(
             .map_err(|err| GetByAddressError::Connection(err.to_string()))?;
 
         // Decode token id
-        let address = Address::from_cash_addr(address.to_string()).map_err(GetByAddressError::Address)?;
+        let address =
+            Address::from_cash_addr(address.to_string()).map_err(GetByAddressError::Address)?;
 
         // TODO: Validate it's an SLP address
 
         // Grab panda from DB
         let db_pandas =
-            get_panda_by_addr(address.bytes(), &conn).map_err(GetByAddressError::Diesel)?;
+            get_full_panda_by_addr(address.bytes(), &conn).map_err(GetByAddressError::Diesel)?;
 
         // Grab attributes
-        let attributes: Vec<PandaAttributes> = db_pandas
-            .iter()
-            .filter_map(|db_panda| db_panda.get_attributes().ok())
+        let attributes: Vec<PandaFrontEnd> = db_pandas
+            .into_iter()
+            .map(|db_panda| PandaFrontEnd::from(db_panda))
             .collect();
 
         // Convert to JSON
@@ -94,15 +133,13 @@ fn panda_by_token_id(
 
         // Grab panda from DB
         let db_panda =
-            get_panda_by_token_id(&raw_token_id, &conn).map_err(GetByTokenError::Diesel)?;
+            get_full_panda_by_token_id(&raw_token_id, &conn).map_err(GetByTokenError::Diesel)?;
 
-        // Grab attributes
-        let attributes = db_panda
-            .get_attributes()
-            .map_err(|_| GetByTokenError::InvalidGene)?;
+        // Convert to frontend panda
+        let frontend_panda = PandaFrontEnd::from(db_panda);
 
         // Convert to JSON
-        let data = serde_json::to_value(attributes).map_err(GetByTokenError::Serde)?;
+        let data = serde_json::to_value(frontend_panda).map_err(GetByTokenError::Serde)?;
 
         // Render using handle bars
         Ok(hb
