@@ -2,7 +2,8 @@ use cashcontracts::{UnsignedTx, UnsignedInput, Tx, TxOutpoint, TxOutput, Output,
                     single_sha256,
                     Address, AddressType, P2PKHOutput, SLPGenesis, SLPSend, OpReturnOutput,
                     tx_hash_to_hex};
-use slpdexdb_base::SLPDEXConfig;
+use slpdexdb_base::{SLPDEXConfig, SLPAmount};
+use crate::token::Token;
 use crate::tx_history::TokenType;
 use crate::data::tx_hash_from_le_slice;
 
@@ -34,26 +35,47 @@ pub struct PND1Tx {
 }
 
 impl PandaTx {
-    pub fn into_tx(self) -> Result<Tx, u64> {
+    pub fn token(&self, timestamp: i64, parent_hash: [u8; 32], tx: &Tx) -> Token {
+        Token {
+            hash: tx.hash(),
+            parent_hash: Some(parent_hash),
+            decimals: 0,
+            timestamp,
+            version_type: TokenType::NFT1Child,
+            document_uri: Some(self.document_uri()),
+            symbol: Some("PANDA".to_string()),
+            name: Some(self.panda_name.clone()),
+            document_hash: None,
+            initial_supply: SLPAmount::new(1, 0),
+            current_supply: SLPAmount::new(1, 0),
+            block_created_height: 0,
+        }
+    }
+
+    fn document_uri(&self) -> String {
+        format!("https://pand.as.cash/genome/{}", hex::encode(&self.genome))
+    }
+
+    pub fn tx(&self) -> Result<Tx, u64> {
         let curve = secp256k1::Secp256k1::new();
         let mut tx_build = UnsignedTx::new_simple();
         let secret_key = self.secret_key;
         let pub_key = secp256k1::PublicKey::from_secret_key(&curve, &secret_key).serialize().to_vec();
         let address = Address::from_serialized_pub_key("bitcoincash", AddressType::P2PKH, &pub_key);
         tx_build.add_input(UnsignedInput {
-            outpoint: self.nft1_outpoint,
+            outpoint: self.nft1_outpoint.clone(),
             output: Box::new(P2PKHOutput {
                 address: address.clone(),
                 value: self.nft1_amount,
             }),
             sequence: 0xffff_ffff,
         });
-        for (outpoint, amount) in self.fee_inputs {
+        for (outpoint, amount) in self.fee_inputs.iter() {
             tx_build.add_input(UnsignedInput {
-                outpoint,
+                outpoint: outpoint.clone(),
                 output: Box::new(P2PKHOutput {
                     address: address.clone(),
-                    value: amount,
+                    value: *amount,
                 }),
                 sequence: 0xffff_ffff,
             });
@@ -62,9 +84,9 @@ impl PandaTx {
             value: 0,
             script: SLPGenesis {
                 token_type: TokenType::NFT1Child as u8,
-                token_ticker: self.panda_ticker.into_bytes(),
-                token_name: self.panda_name.into_bytes(),
-                token_document_url: format!("https://pand.as.cash/genome/{}", hex::encode(&self.genome)).into_bytes(),
+                token_ticker: self.panda_ticker.as_bytes().to_vec(),
+                token_name: self.panda_name.as_bytes().to_vec(),
+                token_document_url: self.document_uri().into_bytes(),
                 token_document_hash: vec![],
                 decimals: 0,
                 mint_baton_vout: None,
@@ -75,7 +97,7 @@ impl PandaTx {
             value: self.dust_limit,
             script: P2PKHOutput {
                 value: self.dust_limit,
-                address: self.owner_address,
+                address: self.owner_address.clone(),
             }.script(),
         });
         tx_build.add_leftover_output(address.clone(), self.fee_per_kb, self.dust_limit)?;

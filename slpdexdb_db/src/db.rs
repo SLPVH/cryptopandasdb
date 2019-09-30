@@ -221,6 +221,7 @@ impl Db {
                         tx: tx_ids[*tx_idx],
                         father: pnd_tx.father_id,
                         mother: pnd_tx.mother_id,
+                        owner_address: pnd_tx.owner_address.bytes().to_vec(),
                     }
                 })
                 .collect::<Vec<_>>();
@@ -292,6 +293,8 @@ impl Db {
                         initial_supply: token.initial_supply.into(),
                         current_supply: token.current_supply.into(),
                         block_created_height: token.block_created_height,
+                        parent_token: None,
+                        parent_token_hash: token.parent_hash.clone().map(|hash| hash.to_vec()),
                     }
                 })
                 .collect::<Vec<_>>()

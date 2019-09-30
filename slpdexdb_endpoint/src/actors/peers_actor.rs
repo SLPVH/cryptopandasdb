@@ -3,7 +3,7 @@ use tokio_tcp::TcpStream;
 use std::convert::identity;
 use std::sync::Arc;
 use slpdexdb_base::Error;
-use slpdexdb_node::actors::{NodeActor, IncomingMsg};
+use slpdexdb_node::actors::{NodeActor, IncomingMsg, OutgoingMsg};
 use slpdexdb_node::DbActor;
 use slpdexdb_node::msg::Subscribe;
 use slpdexdb_node::messages::{TxMessage, BlockMessage};
@@ -90,5 +90,16 @@ impl Handler<IncomingMsg<BlockMessage>> for PeersActor {
 
     fn handle(&mut self, msg: IncomingMsg<BlockMessage>, _ctx: &mut Self::Context) -> Self::Result {
         Response::fut(self.tx_actor.send(msg).from_err().and_then(identity))
+    }
+}
+
+impl Handler<OutgoingMsg> for PeersActor {
+    type Result = ();
+
+    fn handle(&mut self, msg: OutgoingMsg, _ctx: &mut Self::Context) {
+        for node in self.nodes.iter() {
+            node.do_send(msg.clone());
+        }
+        //Response::fut(self.nodes[0].send(msg).from_err().and_then(identity))
     }
 }

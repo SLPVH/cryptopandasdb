@@ -10,7 +10,7 @@ mod slp_amount;
 mod block;
 
 pub use config::*;
-pub use errors::{Error, ErrorKind, TradeOfferError, NumericError, SLPError, TokenError, Result, PNDError};
+pub use errors::{Error, ErrorKind, TradeOfferError, NumericError, SLPError, TokenError, Result, PNDError, PandaError};
 pub use slp_amount::*;
 pub use block::*;
 

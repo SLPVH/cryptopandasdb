@@ -4,6 +4,7 @@ use slpdexdb_base::Error;
 use std::net;
 use slpdexdb_base::{SLPDEXConfig, BlockHeader};
 use slpdexdb_db::{Db, Utxo, SpentUtxo, TxDelta, TradeOfferFilter, TradeOffer, TxHistory};
+use slpdexdb_node::actors::{OutgoingMsg};
 use std::collections::{HashSet, HashMap};
 use std::sync::{Arc, Mutex};
 use crate::actors::TxSubscribers;
@@ -149,4 +150,12 @@ pub struct ProcessBlock {
 
 impl Message for ProcessBlock {
     type Result = Result<(), Error>;
+}
+
+pub struct RegisterOutgoing {
+    pub recipient: Recipient<OutgoingMsg>,
+}
+
+impl Message for RegisterOutgoing {
+    type Result = ();
 }

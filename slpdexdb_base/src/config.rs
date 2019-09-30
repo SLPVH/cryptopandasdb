@@ -23,7 +23,7 @@ impl Default for SLPDEXConfig {
             exch_lokad: "EXCH",
             exch_lokad_b64: base64::encode("EXCH"),
             exch_version: 2,
-            panda_token_hash: tx_hex_to_hash("511801e55bf03a93b55654d9f3123c3291a33d11dccdeafe23123daf802f2f84").unwrap(),
+            panda_token_hash: tx_hex_to_hash("af5fb817275c12a403df832cf61af135d0cd7a63f9c0fedb10ff3b2b50799533").unwrap(),
             panda_fee: 100_000,
         }
     }

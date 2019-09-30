@@ -56,6 +56,13 @@ pub enum PNDError {
     DoesntPayPandaFee,
 }
 
+
+#[derive(Debug)]
+pub enum PandaError {
+    NoParentUtxosLeft,
+    InsufficientFunds(u64),
+}
+
 error_chain! {
     foreign_links {
         Fmt(std::fmt::Error);
@@ -93,6 +100,11 @@ error_chain! {
         InvalidPND(pnd_error: PNDError) {
             description("Invalid PND")
             display("Invalid PND: {:?}", pnd_error)
+        }
+
+        PandaError(panda_error: PandaError) {
+            description("Panda Error")
+            display("Panda Error: {:?}", panda_error)
         }
     }
 }

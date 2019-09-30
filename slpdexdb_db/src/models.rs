@@ -52,6 +52,8 @@ pub struct NewToken {
     pub initial_supply:       PgNumeric, // NUMERIC(52, 26) NOT NULL,
     pub current_supply:       PgNumeric, // NUMERIC(52, 26) NOT NULL,
     pub block_created_height: i32,    // INT NOT NULL
+    pub parent_token:         Option<i32>, // "parent_token" INT REFERENCES token (id) ON DELETE CASCADE
+    pub parent_token_hash:    Option<Vec<u8>>, // "parent_token" BYTEA REFERENCES token (id) ON DELETE CASCADE
 }
 
 #[derive(Debug)]
@@ -115,6 +117,7 @@ pub struct PND1Tx {
     pub father: i64, // BIGINT NOT NULL REFERENCES panda (id) ON DELETE CASCADE,
     pub mother: i64, // BIGINT NOT NULL REFERENCES panda (id) ON DELETE CASCADE,
     pub name: String, // TEXT NOT NULL
+    pub owner_address: Vec<u8>, // BYTEA NOT NULL
 }
 
 #[derive(Queryable)]

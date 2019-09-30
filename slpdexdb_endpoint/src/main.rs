@@ -14,7 +14,7 @@ use cashcontracts::{Address};
 use slpdexdb_base::SLPDEXConfig;
 use slpdexdb_db::Db;
 use crate::actors::{TxActor, ResyncActor, PeersActor, WsActor};
-use crate::msg::ConnectToPeer;
+use crate::msg::{ConnectToPeer, RegisterOutgoing};
 
 pub fn connect_db() -> Db {
     let connection_str = std::env::var("DATABASE_URL").expect("DATABASE_URL");
@@ -47,8 +47,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             add_header_query: db_addr.clone().recipient(),
             header_tip_query: db_addr.recipient(),
         });
-        let tx_addr = TxActor::start_with(Arc::new(Mutex::new(connect_db())), SLPDEXConfig::default(), resync_addr);
+        let tx_addr = TxActor::start_with(Arc::new(Mutex::new(connect_db())), SLPDEXConfig::default(), resync_addr.clone());
         let peers_addr = PeersActor::start(PeersActor::new(tx_addr.clone(), db_addr));
+        resync_addr.do_send(RegisterOutgoing {recipient: peers_addr.clone().recipient()} );
         //let socket_addr = net::SocketAddr::from_str("147.135.131.25:8333").unwrap();
         //let socket_addr = net::SocketAddr::from_str("100.1.209.114:8333").unwrap();
         let socket_addr = net::SocketAddr::from_str("137.74.30.99:8333").unwrap();

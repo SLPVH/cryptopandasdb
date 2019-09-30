@@ -3,7 +3,7 @@ use std::collections::{HashSet, HashMap};
 use std::convert::identity;
 use slpdexdb_base::{Error, SLPDEXConfig};
 use slpdexdb_db::{Db, Utxo, TxDelta, TradeOffer};
-use slpdexdb_node::actors::IncomingMsg;
+use slpdexdb_node::actors::{IncomingMsg, OutgoingMsg};
 use slpdexdb_node::messages::{TxMessage, BlockMessage};
 use crate::msg::{ActivateAddress, DeactivateAddress, ResyncAddress, FetchAddressUtxos,
                  FetchAddressTxDeltas, FetchTradeOfferUtxos, SubscribeToEvent, UnsubscribeFromEvent,

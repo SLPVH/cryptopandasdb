@@ -229,16 +229,24 @@ pub fn get_panda_by_owner_utxo(owner_tx_id: i64, owner_output_idx: i32, conn: &P
         .optional()
 }
 
-pub fn switch_owners(from_tx_id: i64, from_output_idx: i32, to_tx_id: i64, to_output_idx: i32, conn: &PgConnection) -> Result<(), DieselError> {
+pub fn switch_owners(token_hash: [u8; 32], to_tx_hash: [u8; 32], to_output_idx: i32, conn: &PgConnection) -> Result<(), DieselError> {
     use self::schema::panda::dsl as panda_dsl;
-    diesel::update(panda_dsl::panda
-        .filter(
-            panda_dsl::owner_tx.eq(from_tx_id)
-                .and(panda_dsl::owner_tx_idx.eq(from_output_idx))
-        ))
+    use self::schema::tx::dsl as tx_dsl;
+    let panda_id = panda_dsl::panda
+        .inner_join(tx_dsl::tx)
+        .filter(tx_dsl::hash.eq(token_hash.to_vec()))
+        .select(panda_dsl::id)
+        .first::<i64>(conn)?;
+    let to_tx_id = tx_dsl::tx
+        .filter(tx_dsl::hash.eq(to_tx_hash.to_vec()))
+        .select(tx_dsl::id)
+        .first::<i64>(conn)?;
+    diesel::update(panda_dsl::panda)
+        .filter(panda_dsl::id.eq(panda_id))
         .set(
             (panda_dsl::owner_tx.eq(to_tx_id), panda_dsl::owner_tx_idx.eq(to_output_idx)))
-        .execute(conn).map(|_|())
+        .execute(conn)?;
+    Ok(())
 }
 #[cfg(test)]
 mod tests {

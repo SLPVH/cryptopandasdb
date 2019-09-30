@@ -23,6 +23,7 @@ impl<M: NodeMessage> Message for IncomingMsg<M> {
     type Result = Result<(), Error>;
 }
 
+#[derive(Clone)]
 pub struct OutgoingMsg(pub MessagePacket);
 
 impl Message for OutgoingMsg {

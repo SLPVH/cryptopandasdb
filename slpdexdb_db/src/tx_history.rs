@@ -15,6 +15,7 @@ pub struct TxHistory {
     pub txs: Vec<HistoricTx>,
     pub trade_offers: HashMap<usize, TradeOffer>,
     pub pnd_txs: HashMap<usize, PND1Tx>,
+    pub pandas_slp: HashSet<usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -85,6 +86,7 @@ pub struct PND1Tx {
     pub mother_output_idx: u32,
     pub public_key: Vec<u8>,
     pub signature: Vec<u8>,
+    pub owner_address: Address,
 }
 
 #[derive(Clone, Debug)]
@@ -241,6 +243,7 @@ impl TxHistory {
             txs: historic_txs,
             trade_offers,
             pnd_txs,
+            pandas_slp: HashSet::new(),
         }
     }
 
@@ -538,6 +541,7 @@ impl TxHistory {
                     mother_output_idx: mother_output_idx as u32,
                     public_key: pubkey.to_vec(),
                     signature: signature.to_vec(),
+                    owner_address: address,
                 }))
             },
             _ => {
@@ -551,6 +555,7 @@ impl TxHistory {
         let mut historic_txs = Vec::new();
         let mut trade_offers = HashMap::new();
         let mut pnd_txs = HashMap::new();
+        let mut pandas_slp = HashSet::new();
         for tx in txs.iter() {
             let inputs = tx.inputs().iter()
                 .map(|input| {
@@ -610,11 +615,16 @@ impl TxHistory {
                 outputs,
             };
             let trade_offer = match &historic_tx.tx_type {
-                TxType::SLP { .. } => token.and_then(
-                    |token| TradeOffer::from_tx(&historic_tx, tx, config, &token)
+                TxType::SLP { .. } => token.as_ref().and_then(
+                    |token| TradeOffer::from_tx(&historic_tx, tx, config, token)
                 ),
                 _ => None,
             };
+            if let (Some(token), TxType::SLP { token_type, .. }) = (&token, &historic_tx.tx_type) {
+                if token_type == &TokenType::NFT1Child && token.parent_hash == Some(config.panda_token_hash) {
+                    pandas_slp.insert(historic_txs.len());
+                }
+            }
             match Self::_process_pnd1_tx(tx, db, config) {
                 Ok(Some(pnd)) => {pnd_txs.insert(historic_txs.len(), pnd);},
                 Ok(None) => {},
@@ -629,6 +639,7 @@ impl TxHistory {
             txs: historic_txs,
             trade_offers,
             pnd_txs,
+            pandas_slp,
         }
     }
 
@@ -713,6 +724,7 @@ impl TxHistory {
                     output.value_token = SLPAmount::new(0, 0);
                 });
                 self.trade_offers.remove(&i);
+                self.pandas_slp.remove(&i);
             }
         }
         Ok(())
