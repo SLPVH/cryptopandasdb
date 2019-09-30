@@ -140,7 +140,7 @@ impl Db {
                         TxType::SLP {token_hash, token_type, slp_type} => Some(models::SlpTx {
                             tx: id,
                             slp_type: String::from_utf8_lossy(slp_type.to_bytes()).to_string(),
-                            token: *token_ids.get(token_hash.as_ref())?,
+                            token: *token_ids.get(&token_hash[..])?,
                             version: *token_type,
                         }),
                         TxType::Default => None,
