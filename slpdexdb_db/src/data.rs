@@ -50,6 +50,14 @@ pub fn tx_hash_from_slice(slice: &[u8]) -> [u8; 32] {
     hash
 }
 
+pub fn tx_hash_from_le_slice(slice: &[u8]) -> [u8; 32] {
+    let mut hash = [0; 32];
+    for i in 0..32 {
+        hash[i] = slice[31 - i];
+    }
+    hash
+}
+
 pub fn address_hash_from_slice(slice: &[u8]) -> [u8; 20] {
     let mut hash = [0; 20];
     hash.copy_from_slice(&slice);

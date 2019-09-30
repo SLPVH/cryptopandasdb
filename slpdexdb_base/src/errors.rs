@@ -29,6 +29,31 @@ pub enum TokenError {
     TokenNotMinedYet(String),
     UnknownTokenId(String),
     InvalidTokenHex(String),
+    UnsupportedTokenType(i16),
+    InvalidNftParent,
+}
+
+#[derive(Debug)]
+pub enum PNDError {
+    InvalidNumberOfPushops(usize),
+    InvalidName(String, std::string::FromUtf8Error),
+    InvalidFatherHash(String),
+    InvalidMotherHash(String),
+    FatherIsMother,
+    WrongFatherToken(String),
+    WrongMotherToken(String),
+    InvalidPubkey(String),
+    InvalidSignature(String),
+    SignatureVerifyFail(String, String, String),
+    InvalidFatherOutputIdx(String),
+    InvalidMotherOutputIdx(String),
+    FatherDoesntExist(String),
+    MotherDoesntExist(String),
+    InvalidFatherUTXO(String),
+    InvalidMotherUTXO(String),
+    FatherNotOwnedByAddress(String, String),
+    MotherNotOwnedByAddress(String, String),
+    DoesntPayPandaFee,
 }
 
 error_chain! {
@@ -63,6 +88,11 @@ error_chain! {
         InvalidTradeOffer(trade_offer_error: TradeOfferError) {
             description("Invalid trade offer")
             display("Invalid trade offer: {:?}", trade_offer_error)
+        }
+
+        InvalidPND(pnd_error: PNDError) {
+            description("Invalid PND")
+            display("Invalid PND: {:?}", pnd_error)
         }
     }
 }

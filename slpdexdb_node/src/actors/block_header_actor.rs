@@ -47,9 +47,10 @@ impl Handler<HandshakeSuccess> for BlockHeaderActor {
         let node = self.node.clone();
         let db = self.db.clone();
         Response::fut(
-            self.node
+            Self::_fetch_headers(db, node)
+            /*self.node
                 .send(OutgoingMsg(MessagePacket::from_payload(b"sendheaders", vec![]))).from_err()
-                .and_then(move |_| Self::_fetch_headers(db, node))
+                .and_then(move |_| Self::_fetch_headers(db, node))*/
         )
     }
 }

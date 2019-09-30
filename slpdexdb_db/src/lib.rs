@@ -15,6 +15,8 @@ mod update_history;
 mod convert;
 mod data;
 pub mod panda_tools;
+pub mod panda;
+pub mod fan_out;
 
 pub use db::*;
 pub use endpoint::*;

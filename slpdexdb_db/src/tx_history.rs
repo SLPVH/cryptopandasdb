@@ -1,17 +1,20 @@
 use crate::tx_source::{tx_result, TxSource, TxFilter, Confirmedness};
-use slpdexdb_base::{SLPDEXConfig, SLPAmount, Result, Error, ErrorKind, SLPError, TokenError, TradeOfferError};
+use slpdexdb_base::{SLPDEXConfig, SLPAmount, Result, Error, ErrorKind, SLPError, TokenError, TradeOfferError, PNDError};
 use crate::token::Token;
 use crate::db::Db;
-use byteorder::{BigEndian, ReadBytesExt};
+use crate::data::{tx_hash_from_slice, tx_hash_from_le_slice};
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::io;
 use std::collections::{HashSet, HashMap};
-use cashcontracts::{Output, AddressType, Address, tx_hash_to_hex, tx_hex_to_hash};
+use cashcontracts::{Output, P2PKHOutput, AddressType, Address, tx_hash_to_hex, tx_hex_to_hash, single_sha256, double_sha256};
 use rug::Rational;
+use crate::panda_tools::get_panda_by_owner_utxo;
 
 #[derive(Clone, Debug)]
 pub struct TxHistory {
     pub txs: Vec<HistoricTx>,
     pub trade_offers: HashMap<usize, TradeOffer>,
+    pub pnd_txs: HashMap<usize, PND1Tx>,
 }
 
 #[derive(Clone, Debug)]
@@ -37,9 +40,16 @@ pub enum TxType {
     Default,
     SLP {
         token_hash: [u8; 32],
-        token_type: i32,
+        token_type: TokenType,
         slp_type: SLPTxType,
     },
+}
+
+#[derive(Copy, Clone, Debug, FromPrimitive, Eq, PartialEq)]
+pub enum TokenType {
+    Standard = 1,
+    NFT1Parent = 0x81,
+    NFT1Child = 0x41,
 }
 
 #[derive(Clone, Debug)]
@@ -62,6 +72,19 @@ pub struct HistoricTxInput {
     pub output_tx: [u8; 32],
     pub output_idx: i32,
     pub output: OutputType,
+}
+
+#[derive(Clone, Debug)]
+pub struct PND1Tx {
+    pub father_id: i64,
+    pub mother_id: i64,
+    pub name: String,
+    pub father_tx_hash: [u8; 32],
+    pub father_output_idx: u32,
+    pub mother_tx_hash: [u8; 32],
+    pub mother_output_idx: u32,
+    pub public_key: Vec<u8>,
+    pub signature: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -155,6 +178,7 @@ impl TxHistory {
                         config: &SLPDEXConfig) -> Self {
         let mut historic_txs = Vec::with_capacity(entries.len());
         let mut trade_offers = HashMap::new();
+        let mut pnd_txs = HashMap::new();
         for entry in entries.iter() {
             let inputs = entry.inputs.iter()
                 .map(|input| {
@@ -196,7 +220,7 @@ impl TxHistory {
                 timestamp: entry.blk.as_ref().map(|blk| blk.t as i64).unwrap_or(now),
                 tx_type: entry.slp.as_ref()
                     .and_then(|slp| Some(TxType::SLP {
-                        token_type: slp.detail.version_type,
+                        token_type: num::traits::FromPrimitive::from_u16(slp.detail.version_type as u16)?,
                         token_hash: tx_hex_to_hash(&slp.detail.token_id)?,
                         slp_type: SLPTxType::from_bytes(slp.detail.transaction_type.as_bytes())?,
                     }))
@@ -216,6 +240,7 @@ impl TxHistory {
         TxHistory {
             txs: historic_txs,
             trade_offers,
+            pnd_txs,
         }
     }
 
@@ -253,9 +278,10 @@ impl TxHistory {
         }
     }
 
-    pub fn _process_slp_output(script: &cashcontracts::Script, db: &Db)
+    pub fn _process_slp_output(tx: &cashcontracts::Tx, db: &Db)
             -> Result<Option<(TxType, Vec<SLPAmount>, Token)>> {
         use cashcontracts::{Op::*, OpCodeType::*, serialize};
+        let script = tx.outputs()[0].script();
         let script_hex = || hex::encode(script.to_vec());
         let ops = script.ops();
         match ops.get(1) {
@@ -270,8 +296,29 @@ impl TxHistory {
             return Err(ErrorKind::InvalidSLPOutput(script_hex(),
                                                    SLPError::NotSLPSafe).into());
         }
+        match &ops {
+            &[Code(OpReturn), Push(_), Push(token_type), Push(tx_type), Push(token_ticker),
+              Push(token_name), Push(token_document_url), Push(token_document_hash), Push(decimals),
+              Push(mint_baton_vout), Push(initial_token_mint_quantity)] if tx_type == b"GENESIS" => {
+                let decimals = decimals[0];
+                return Ok(Some((
+                    TxType::SLP {
+                        slp_type: SLPTxType::Genesis,
+                        token_type: num::traits::FromPrimitive::from_u8(token_type[0]).unwrap(),
+                        token_hash: tx.hash(),
+                    },
+                    vec![SLPAmount::new(
+                        io::Cursor::new(&initial_token_mint_quantity).read_u64::<BigEndian>()? as i128,
+                        decimals as u32,
+                    )],
+                    Self::_fetch_token(&tx.hash(), db)?,
+                )))
+            },
+            _ => {},
+        }
         match (&ops[0], &ops[1], &ops[2], &ops[3], &ops[4]) {
-            (Code(OpReturn), Push(_), Push(token_type), Push(tx_type), Push(token_id)) => {
+            (Code(OpReturn), Push(_), Push(token_type), Push(tx_type), Push(token_id))
+                    if tx_type == b"SEND" => {
                 if token_type.len() > 2 || token_type.len() == 0 {
                     return Err(ErrorKind::InvalidSLPOutput(
                         script_hex(),
@@ -303,33 +350,207 @@ impl TxHistory {
                         SLPError::TooManyAmounts(amounts.len()),
                     ).into())
                 }
-                Ok(Some((
-                    TxType::SLP {
-                        slp_type: SLPTxType::from_bytes(tx_type)
-                            .ok_or_else(|| ErrorKind::InvalidSLPOutput(
-                                script_hex(),
-                                SLPError::InvalidSLPType(
-                                    format!(
-                                        "{} ({})",
-                                        String::from_utf8_lossy(tx_type),
-                                        hex::encode(tx_type),
+                if let Some(token_type) = num::traits::FromPrimitive::from_u16(token_type as u16) {
+                    Ok(Some((
+                        TxType::SLP {
+                            slp_type: SLPTxType::from_bytes(tx_type)
+                                .ok_or_else(|| ErrorKind::InvalidSLPOutput(
+                                    script_hex(),
+                                    SLPError::InvalidSLPType(
+                                        format!(
+                                            "{} ({})",
+                                            String::from_utf8_lossy(tx_type),
+                                            hex::encode(tx_type),
+                                        )
                                     )
-                                )
-                            ))?,
-                        token_type,
-                        token_hash,
-                    },
-                    amounts,
-                    token,
-                )))
+                                ))?,
+                            token_type,
+                            token_hash,
+                        },
+                        amounts,
+                        token,
+                    )))
+                } else {
+                    Ok(None)
+                }
             },
             _ => { Err(ErrorKind::InvalidSLPOutput(script_hex(), SLPError::NoMatch).into()) }
         }
     }
 
+    pub fn _process_pnd1_tx(tx: &cashcontracts::Tx, db: &Db, config: &SLPDEXConfig) -> Result<Option<PND1Tx>> {
+        use cashcontracts::{Op::*, OpCodeType::*, serialize};
+        if tx.outputs().len() < 2 {
+            return Ok(None);
+        }
+        let op_return_script = tx.outputs()[0].script();
+        let ops = op_return_script.ops();
+        match ops.get(1) {
+            Some(Push(lokad_id)) if lokad_id == b"PND1" => {},
+            _ => return Ok(None),
+        }
+        let fee_output = &tx.outputs()[1];
+        if fee_output.value < config.panda_fee {
+            return Err(ErrorKind::InvalidPND(PNDError::DoesntPayPandaFee).into())
+        }
+        if fee_output.script.ops() != (P2PKHOutput {
+            value: 0,
+            address: config.fee_address.clone(),
+        }).script().ops() {
+            return Err(ErrorKind::InvalidPND(PNDError::DoesntPayPandaFee).into())
+        }
+        match &ops {
+            &[Code(OpReturn), Push(_), Push(name), Push(father_hash), Push(father_output_idx),
+                   Push(mother_hash), Push(mother_output_idx), Push(pubkey), Push(signature)] => {
+                if father_hash.len() != 32 {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::InvalidFatherHash(hex::encode(father_hash))
+                    ).into());
+                }
+                if mother_hash.len() != 32 {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::InvalidMotherHash(hex::encode(mother_hash))
+                    ).into());
+                }
+                let name = String::from_utf8(name.to_vec())
+                    .map_err(|err| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidName(hex::encode(name), err)
+                        ).into()
+                    })?;
+                let father_hash = tx_hash_from_le_slice(father_hash);
+                let mother_hash = tx_hash_from_le_slice(mother_hash);
+                if father_hash == mother_hash {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::FatherIsMother
+                    ).into())
+                }
+                let father_output_idx = io::Cursor::new(father_output_idx).read_i32::<LittleEndian>()
+                    .map_err(|_| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidFatherOutputIdx(hex::encode(father_output_idx))
+                        ).into()
+                    })?;
+                let mother_output_idx = io::Cursor::new(mother_output_idx).read_i32::<LittleEndian>()
+                    .map_err(|_| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidMotherOutputIdx(hex::encode(mother_output_idx))
+                        ).into()
+                    })?;
+                let mut slp_txs = db.slp_txs(vec![father_hash.clone(), mother_hash.clone()].into_iter())?;
+                let (father_tx, father_slp_tx, father_token) = slp_txs.remove(&father_hash)
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::FatherDoesntExist(hex::encode(father_hash))
+                        ).into()
+                    })?;
+                let (mother_tx, mother_slp_tx, mother_token) = slp_txs.remove(&mother_hash)
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::MotherDoesntExist(hex::encode(mother_hash))
+                        ).into()
+                    })?;
+                println!("{:?} {:?} {:?}", father_tx, father_slp_tx, father_token);
+                if father_token.parent_token_hash != Some(config.panda_token_hash.to_vec()) {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::WrongFatherToken(
+                            format!("{:?}", father_token.parent_token_hash
+                                .map(|token| tx_hash_to_hex(&tx_hash_from_slice(&token))))
+                        )
+                    ).into())
+                }
+                if mother_token.parent_token_hash != Some(config.panda_token_hash.to_vec()) {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::WrongMotherToken(
+                            format!("{:?}", mother_token.parent_token_hash
+                                .map(|token| tx_hash_to_hex(&tx_hash_from_slice(&token))))
+                        )
+                    ).into())
+                }
+                let mut tx_outputs = db.tx_outputs(vec![father_hash.clone(), mother_hash.clone()].into_iter())?;
+                let father_output = tx_outputs.remove(&(father_hash, father_output_idx))
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::FatherDoesntExist(format!("{}:{}", hex::encode(father_hash), father_output_idx))
+                        ).into()
+                    })?;
+                let mother_output = tx_outputs.remove(&(mother_hash, mother_output_idx))
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::MotherDoesntExist(format!("{}:{}", hex::encode(mother_hash), mother_output_idx))
+                        ).into()
+                    })?;
+                let father = get_panda_by_owner_utxo(father_tx.id, father_output_idx as i32, db.connection())?
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidFatherUTXO(format!("{}:{}", hex::encode(father_hash), father_output_idx))
+                        ).into()
+                    })?;
+                let mother = get_panda_by_owner_utxo(mother_tx.id, mother_output_idx as i32, db.connection())?
+                    .ok_or_else(|| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidFatherUTXO(format!("{}:{}", hex::encode(mother_hash), mother_output_idx))
+                        ).into()
+                    })?;
+                let address = Address::from_serialized_pub_key("simpleledger", AddressType::P2PKH, &pubkey);
+                if father_output.address != Some(address.bytes().to_vec()) {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::FatherNotOwnedByAddress(hex::encode(father_hash), address.cash_addr().to_string())
+                    ).into());
+                }
+                if mother_output.address != Some(address.bytes().to_vec()) {
+                    return Err(ErrorKind::InvalidPND(
+                        PNDError::MotherNotOwnedByAddress(hex::encode(mother_hash), address.cash_addr().to_string())
+                    ).into());
+                }
+                let pubkey_decoded = secp256k1::PublicKey::from_slice(pubkey)
+                    .map_err(|_| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidPubkey(hex::encode(pubkey))
+                        ).into()
+                    })?;
+                let signature_decoded = secp256k1::Signature::from_der(signature)
+                    .map_err(|_| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::InvalidSignature(hex::encode(signature))
+                        ).into()
+                    })?;
+                let message = format!("PANDA S3X:{}+{}",
+                                      tx_hash_to_hex(&tx_hash_from_slice(&father_token.hash)),
+                                      tx_hash_to_hex(&tx_hash_from_slice(&mother_token.hash)));
+                let message_hash = secp256k1::Message::from_slice(&single_sha256(message.as_bytes())).unwrap();
+                let curve = secp256k1::Secp256k1::new();
+                curve.verify(&message_hash, &signature_decoded, &pubkey_decoded)
+                    .map_err(|_| -> Error {
+                        ErrorKind::InvalidPND(
+                            PNDError::SignatureVerifyFail(message,
+                                                          hex::encode(signature),
+                                                          hex::encode(pubkey))
+                        ).into()
+                    })?;
+                return Ok(Some(PND1Tx {
+                    father_id: father.id,
+                    mother_id: mother.id,
+                    name,
+                    father_tx_hash: tx_hash_from_slice(&father_tx.hash),
+                    father_output_idx: father_output_idx as u32,
+                    mother_tx_hash: tx_hash_from_slice(&mother_tx.hash),
+                    mother_output_idx: mother_output_idx as u32,
+                    public_key: pubkey.to_vec(),
+                    signature: signature.to_vec(),
+                }))
+            },
+            _ => {
+                return Err(ErrorKind::InvalidPND(PNDError::InvalidNumberOfPushops(ops.len() - 1)).into());
+            }
+        }
+        Ok(None)
+    }
+
     pub fn from_txs(txs: &[cashcontracts::Tx], now: i64, config: &SLPDEXConfig, db: &Db) -> Self {
         let mut historic_txs = Vec::new();
         let mut trade_offers = HashMap::new();
+        let mut pnd_txs = HashMap::new();
         for tx in txs.iter() {
             let inputs = tx.inputs().iter()
                 .map(|input| {
@@ -343,7 +564,7 @@ impl TxHistory {
             let (tx_type, slp_amounts, token) = tx.outputs()
                 .get(0)
                 .and_then(|output| {
-                    match Self::_process_slp_output(&output.script, db) {
+                    match Self::_process_slp_output(tx, db) {
                         Ok(slp_output) => slp_output,
                         Err(err) => {
                             eprintln!("Invalid SLP output: {} in {}", err, tx_hash_to_hex(&tx.hash()));
@@ -394,6 +615,11 @@ impl TxHistory {
                 ),
                 _ => None,
             };
+            match Self::_process_pnd1_tx(tx, db, config) {
+                Ok(Some(pnd)) => {pnd_txs.insert(historic_txs.len(), pnd);},
+                Ok(None) => {},
+                Err(err) => eprintln!("PND error: {}", err),
+            };
             if let Some(trade_offer) = trade_offer {
                 trade_offers.insert(historic_txs.len(), trade_offer);
             }
@@ -402,6 +628,7 @@ impl TxHistory {
         TxHistory {
             txs: historic_txs,
             trade_offers,
+            pnd_txs,
         }
     }
 
@@ -409,6 +636,11 @@ impl TxHistory {
         match db.token(token_hash)? {
             Some(token) => Ok(token),
             None => {
+                return Err(   // CryptoPandas only cares about known tokens
+                    ErrorKind::TokenError(
+                        TokenError::UnknownTokenId(tx_hash_to_hex(token_hash))
+                    ).into()
+                );
                 let mut token_entries = crate::token_source::TokenSource::new()
                     .request_tokens(&[TxFilter::TokenId(token_hash.clone())])?;
                 println!("token entry: {:?}", token_entries);
@@ -427,7 +659,66 @@ impl TxHistory {
         }
     }
 
-    pub fn validate_slp(&mut self, tx_source: &TxSource, _db: &Db, config: &SLPDEXConfig)
+    pub fn validate_slp(&mut self, tx_source: &TxSource, db: &Db, config: &SLPDEXConfig)
+                        -> Result<()> {
+        let tx_to_check = self.txs.iter()
+            .flat_map(|tx| {
+                tx.inputs.iter()
+                    .map(|input| input.output_tx)
+                    .take(match tx.tx_type {
+                        TxType::SLP {..} => tx.inputs.len(),
+                        TxType::Default => 0,
+                    })
+            })
+            .collect::<HashSet<_>>();
+        if tx_to_check.len() == 0 { return Ok(()); }
+        let tx_outputs = db.tx_outputs(tx_to_check.iter().cloned())?;
+        let slp_txs = db.slp_txs(tx_to_check.iter().cloned())?;
+        for i in 0..self.txs.len() {
+            let tx = &mut self.txs[i];
+            let (token_hash, token_type) = match tx.tx_type {
+                TxType::SLP {ref token_hash, token_type, ..} => (token_hash, token_type),
+                TxType::Default => continue,
+            };
+            println!("validating {}", cashcontracts::tx_hash_to_hex(&tx.hash));
+            println!("token found: ");
+            let output_sum = tx.outputs.iter()
+                .map(|output| output.value_token)
+                .sum::<SLPAmount>();
+            let input_sum = tx.inputs.iter()
+                .filter_map(|input| {
+                    let (tx, slp_tx, token) = slp_txs.get(&input.output_tx)?;
+                    Some((
+                        input,
+                        tx,
+                        slp_tx,
+                        tx_outputs.get(&(input.output_tx.clone(), input.output_idx))?,
+                        token,
+                    ))
+                })
+                .filter(|(input, tx, slp_tx, output, token)| {
+                    input.output_idx > 0 &&
+                        &token.hash == token_hash &&
+                        slp_tx.version == token_type as i32
+                })
+                .map(|(input, tx, slp_tx, output, token)|
+                    SLPAmount::from_numeric_decimals(&output.value_token_base, token.decimals as u32)
+                )
+                .sum::<SLPAmount>();
+            println!("input sum: {}", input_sum);
+            println!("output sum: {}", output_sum);
+            if input_sum < output_sum {
+                tx.tx_type = TxType::Default;
+                tx.outputs.iter_mut().for_each(|output| {
+                    output.value_token = SLPAmount::new(0, 0);
+                });
+                self.trade_offers.remove(&i);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn validate_slp_remote(&mut self, tx_source: &TxSource, db: &Db, config: &SLPDEXConfig)
             -> Result<()> {
         let tx_to_check = self.txs.iter()
             .flat_map(|tx| {
@@ -439,18 +730,15 @@ impl TxHistory {
                     })
             })
             .collect::<HashSet<_>>();
+        if tx_to_check.len() == 0 { return Ok(()); }
         let tx_to_check = tx_to_check.into_iter()
             .map(TxFilter::TxHash)
             .collect::<Vec<_>>();
-        if tx_to_check.len() == 0 { return Ok(()); }
         let validity_map = tx_source
             .request_slp_tx_validity(&tx_to_check, config, Confirmedness::Both)?
             .into_iter()
             .map(|validity| (cashcontracts::tx_hex_to_hash(&validity.tx.h).unwrap(), validity))
             .collect::<HashMap<_, _>>();
-        for validity in validity_map.values() {
-            println!("{}", serde_json::to_string(validity).unwrap_or(".".to_string()));
-        }
         for i in 0..self.txs.len() {
             let tx = &mut self.txs[i];
             let (token_hash, token_type) = match &tx.tx_type {
@@ -471,7 +759,7 @@ impl TxHistory {
                     validity.slp.valid &&
                         tx_input.output_idx > 0 &&
                         tx_hex_to_hash(&validity.slp.detail.token_id).as_ref() == Some(token_hash) &&
-                        validity.slp.detail.version_type == *token_type
+                        validity.slp.detail.version_type == *token_type as i32
                 )
                 .filter_map(|(tx_input, validity)|
                     validity.slp.detail.outputs.get((tx_input.output_idx - 1) as usize)
